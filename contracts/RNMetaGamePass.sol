@@ -56,7 +56,7 @@ contract RNMetaGamePass is ERC721, ERC721Enumerable, ERC721Royalty, ContextMixin
     // 1, 0xe6F7C7caF678A3B7aFb93891907873E88F4FD4AC, 750
     constructor(
         uint256 _allowMintingOn,
-        address _royaltiesReceiver, 
+        address _royaltiesReceiver,
         uint96 _royaltiesFeeNumerator
     ) ERC721("Randomizer Network Game Pass", "RNGP") {
         allowMintingAfter = _allowMintingOn > block.timestamp ? _allowMintingOn - block.timestamp : 0;
