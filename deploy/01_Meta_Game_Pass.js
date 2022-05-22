@@ -3,8 +3,8 @@ const config = require('../config');
 module.exports = async ({getNamedAccounts, deployments}) => {
     const {deploy, log} = deployments;
     const {deployer} = await getNamedAccounts();
-    log("Deploying BTCLPMetaGamePass....");
-    const BTCLPMetaGamePass = await deploy('BTCLPMetaGamePass', {
+    log("Deploying RNMetaGamePass....");
+    const RNMetaGamePass = await deploy('RNMetaGamePass', {
       from: deployer,
       args: [
         "1",                              // Timestamp starts now
@@ -13,8 +13,8 @@ module.exports = async ({getNamedAccounts, deployments}) => {
       ], 
       log: true,
     });
-    log(`01 - Deployed 'BTCLPMetaGamePass' at ${BTCLPMetaGamePass.address}`);
+    log(`01 - Deployed 'RNMetaGamePass' at ${RNMetaGamePass.address}`);
     return true;
 };
-module.exports.tags = ['BTCLPMetaGamePass'];
-module.exports.id = 'BTCLPMetaGamePass';
+module.exports.tags = ['RNMetaGamePass'];
+module.exports.id = 'RNMetaGamePass';

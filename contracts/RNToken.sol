@@ -1,15 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-// ██████  ████████  ██████ ██      ██████      ████████  ██████  ██   ██ ███████ ███    ██ 
-// ██   ██    ██    ██      ██      ██   ██        ██    ██    ██ ██  ██  ██      ████   ██ 
-// ██████     ██    ██      ██      ██████         ██    ██    ██ █████   █████   ██ ██  ██ 
-// ██   ██    ██    ██      ██      ██             ██    ██    ██ ██  ██  ██      ██  ██ ██ 
-// ██████     ██     ██████ ███████ ██             ██     ██████  ██   ██ ███████ ██   ████ 
-
-// Github - https://github.com/btclottery
-// Twitter - https://twitter.com/btclottery_io
-// Discord - https://discord.gg/tGc8GhEc
+// ██████  ███    ██     ████████  ██████  ██   ██ ███████ ███    ██ 
+// ██   ██ ████   ██        ██    ██    ██ ██  ██  ██      ████   ██ 
+// ██████  ██ ██  ██        ██    ██    ██ █████   █████   ██ ██  ██ 
+// ██   ██ ██  ██ ██        ██    ██    ██ ██  ██  ██      ██  ██ ██ 
+// ██   ██ ██   ████        ██     ██████  ██   ██ ███████ ██   ████ 
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
@@ -22,14 +18,14 @@ interface ERC677Receiver {
   function onTokenTransfer(address _sender, uint _value, bytes memory _data) external;
 }
 
-contract BTCLPToken is ERC20, ERC20Burnable, ERC20Snapshot, Ownable, ERC20Permit, ERC20Votes {
+contract RNToken is ERC20, ERC20Burnable, ERC20Snapshot, Ownable, ERC20Permit, ERC20Votes {
     uint256 public constant minimumMintInterval = 365 days;
     uint256 public constant mintCap = 100; // 1%
     uint256 public nextMint; // Next Timestamp
 
     constructor()
-        ERC20("Bitcoin Lottery Protocol", "BTCLP") 
-        ERC20Permit("Bitcoin Lottery Protocol")
+        ERC20("Randomizer Network", "RN") 
+        ERC20Permit("Randomizer Network")
     {
         _mint(msg.sender, 10000000000 * 10 ** decimals());
         nextMint = block.timestamp + minimumMintInterval;
@@ -46,8 +42,8 @@ contract BTCLPToken is ERC20, ERC20Burnable, ERC20Snapshot, Ownable, ERC20Permit
      * @param amount The quantity of tokens to mint.
      */
     function mint(address to, uint256 amount) public onlyOwner {
-        require(amount <= (totalSupply() * mintCap) / 10000, "BTCLP: Mint exceeds maximum amount");
-        require(block.timestamp >= nextMint, "BTCLP: Cannot mint yet");
+        require(amount <= (totalSupply() * mintCap) / 10000, "RN: Mint exceeds maximum amount");
+        require(block.timestamp >= nextMint, "RN: Cannot mint yet");
         nextMint = block.timestamp + minimumMintInterval;
         _mint(to, amount);
     }

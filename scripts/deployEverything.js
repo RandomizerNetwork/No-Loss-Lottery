@@ -4,11 +4,11 @@ async function main() {
   const block = await hre.ethers.provider.getBlock("latest");
   const openingTime = Math.floor(block.timestamp) + 1 // now + 1 hour = 3600
   
-  // We deploy the BTCLP Governance Token
-  const BTCLPToken = await hre.ethers.getContractFactory("BTCLPToken");
-  const btclp = await BTCLPToken.deploy(openingTime);
-  await btclp.deployed();
-  console.log("BTCLPToken deployed to:", btclp.address);
+  // We deploy the RN Governance Token
+  const RNToken = await hre.ethers.getContractFactory("RNToken");
+  const rn = await RNToken.deploy(openingTime);
+  await rn.deployed();
+  console.log("RNToken deployed to:", rn.address);
 
   // We deploy the NLL Utility Token
   const NLLToken = await hre.ethers.getContractFactory("NLLToken");
@@ -17,10 +17,10 @@ async function main() {
   console.log("NLLToken deployed to:", nll.address);
 
   // We deploy Meta Game Passes
-  const BTCLPMetaGamePass = await hre.ethers.getContractFactory("BTCLPMetaGamePass");
-  const gamepass = await BTCLPMetaGamePass.deploy(openingTime);
+  const RNMetaGamePass = await hre.ethers.getContractFactory("RNMetaGamePass");
+  const gamepass = await RNMetaGamePass.deploy(openingTime);
   await gamepass.deployed();
-  console.log("BTCLPMetaGamePass deployed to:", gamepass.address);
+  console.log("RNMetaGamePass deployed to:", gamepass.address);
 
   // We deploy the Governor Contract
   // We deploy the Timelock Contract

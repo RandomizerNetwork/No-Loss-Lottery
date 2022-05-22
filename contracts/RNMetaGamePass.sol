@@ -45,7 +45,7 @@ contract ProxyRegistry {
     mapping(address => OwnableDelegateProxy) public proxies;
 }
 
-contract BTCLPMetaGamePass is ERC721, ERC721Enumerable, ERC721Royalty, ContextMixin, Ownable {
+contract RNMetaGamePass is ERC721, ERC721Enumerable, ERC721Royalty, ContextMixin, Ownable {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIdCounter;
 
@@ -58,7 +58,7 @@ contract BTCLPMetaGamePass is ERC721, ERC721Enumerable, ERC721Royalty, ContextMi
         uint256 _allowMintingOn,
         address _royaltiesReceiver, 
         uint96 _royaltiesFeeNumerator
-    ) ERC721("No Loss Lottery Game Pass", "NLLGP") {
+    ) ERC721("Randomizer Network Game Pass", "RNGP") {
         allowMintingAfter = _allowMintingOn > block.timestamp ? _allowMintingOn - block.timestamp : 0;
         timeDeployed = block.timestamp;
         _setDefaultRoyalty(_royaltiesReceiver, _royaltiesFeeNumerator);
