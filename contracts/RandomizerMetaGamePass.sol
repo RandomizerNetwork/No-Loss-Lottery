@@ -45,13 +45,15 @@ contract ProxyRegistry {
     mapping(address => OwnableDelegateProxy) public proxies;
 }
 
-contract RNMetaGamePass is ERC721, ERC721Enumerable, ERC721Royalty, ContextMixin, Ownable {
+contract RandomizerMetaGamePass is ERC721, ERC721Enumerable, ERC721Royalty, ContextMixin, Ownable {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIdCounter;
 
     uint256 public constant MAX_GAME_PASSES = 5000;
     uint256 public immutable allowMintingAfter;
     uint256 public immutable timeDeployed;
+
+    uint256 public DAILY_METAPASS_REWARD = 1000; // 10 RANDOM Tokens * 5000 NFTs = 5M * 365 = 1.8B = 18.250.000 RANDOM Tokens
 
     // 1, 0xe6F7C7caF678A3B7aFb93891907873E88F4FD4AC, 750
     constructor(
@@ -182,6 +184,24 @@ contract RNMetaGamePass is ERC721, ERC721Enumerable, ERC721Royalty, ContextMixin
     function _beforeTokenTransfer(address from, address to, uint256 tokenId) internal override(ERC721, ERC721Enumerable) {
         super._beforeTokenTransfer(from, to, tokenId);
     }
+
+    /**
+    @dev Block transfers while nesting.
+     */
+    // function _beforeTokenTransfers(
+    //     address,
+    //     address,
+    //     uint256 startTokenId,
+    //     uint256 quantity
+    // ) internal view override {
+    //     uint256 tokenId = startTokenId;
+    //     for (uint256 end = tokenId + quantity; tokenId < end; ++tokenId) {
+    //         require(
+    //             nestingStarted[tokenId] == 0 || nestingTransfer == 2,
+    //             "Moonbirds: nesting"
+    //         );
+    //     }
+    // }
 
     function _burn(uint256 tokenId) internal override(ERC721, ERC721Royalty) {
         super._burn(tokenId);

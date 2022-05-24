@@ -24,11 +24,11 @@ interface mintNLLToken {
     function mint(address receiver, uint amount) external;
 }
 
-contract RNDailyNoLossLottery is Context, Ownable, ReentrancyGuard, VRFConsumerBaseV2, KeeperCompatible {
+contract RandomizerDailyNoLossLottery is Context, Ownable, ReentrancyGuard, VRFConsumerBaseV2, KeeperCompatible {
     using SafeERC20 for IERC20;
     
-    IERC20 private immutable rnToken; // RN TOKENS ARE RECLAIMABLE AFTER THE ROUND ENDS
-    IERC20 private immutable nllToken;   // NLL TOKENS ARE BURNED ON EVERY USE 1 NLL = 1 TICKET
+    IERC20 private immutable rnToken;   // RANDOM TOKENS ARE RECLAIMABLE AFTER THE ROUND ENDS
+    IERC20 private immutable nllToken;  // NLL TOKENS ARE BURNED ON EVERY USE 1 NLL = 1 TICKET
     IERC721Enumerable private immutable nftToken; // META GAME PASS NFTS - DAILY PRIVATE NFT NO LOSS LOTTERY
 
     VRFCoordinatorV2Interface COORDINATOR;
@@ -59,7 +59,7 @@ contract RNDailyNoLossLottery is Context, Ownable, ReentrancyGuard, VRFConsumerB
         address[] winnersDAO;                       // Lucky Addresses of Lucky Winnings Tickets
         address[] winnersNFT;                       // Lucky Addresses of Lucky Winnings Tickets
         mapping (uint256 => address) ticketOwner;   // Players Addresses from their Ticket Numbers 
-        mapping (address => uint256) totalRN;    // Total RN Contributed in active round
+        mapping (address => uint256) totalRANDOM;   // Total RANDOM Contributed in active round
         mapping (address => uint256) totalNLL;      // Total NLL Contributed in active round
         mapping (address => bool) isUnique;         // Check if Player is Unique in current round
     }
@@ -75,8 +75,8 @@ contract RNDailyNoLossLottery is Context, Ownable, ReentrancyGuard, VRFConsumerB
     // DAILY JACKPOT ROUND
     uint256 public round;
     uint256 public drawFrequency = 1 days;
-    uint256 public unclaimedTokens;            // total RN Tokens that are Claimable
-    uint256 public rnEntry = 1e18;          // 1 RN per Ticket that is reclaimable at the end of the round
+    uint256 public unclaimedTokens;            // total RANDOM Tokens that are Claimable
+    uint256 public rnEntry = 1e18;             // 1 RANDOM per Ticket that is reclaimable at the end of the round
     uint256 public nllEntry = 1e18;            // 1 NLL Token per Ticket that get's burned after it is used
     uint16 private requestConfirmations = 3;   // Longest Chain of Blocks after which Chainlink VRF makes the Random Hex Request 
     uint32 private callbackGasLimit = 100000;  // Amount of gas used for Chainlink Keepers Network calling Chainlink VRF V2 Randomness Function
@@ -125,18 +125,28 @@ contract RNDailyNoLossLottery is Context, Ownable, ReentrancyGuard, VRFConsumerB
         subscriptionId = 0;
     }
 
-    // Set GNOSIS Treasury Wallet Address
+    // Set Gnosis Treasury Wallet Address
     function setTreasuryAddress (address _treasury) public onlyOwner returns (bool) {
         treasury = _treasury;
         return true;
     }
 
+    // Used to withdraw remaining LINK Tokens after ~10 years of Daily Games.
+    function withdrawLink(uint256 amount, address to) external onlyOwner after10Years {
+        LINKTOKEN.transfer(to, amount);
+    }
+
+    // Helper function used to withdraw remaining LINK Tokens after all Daily Games have finished.
+    function withdrawRandomTokens() external onlyOwner after10Years {
+        require(rnToken.transfer(_msgSender(), rnToken.balanceOf(address(this))), "Unable to transfer");
+    }
+
     /**
-     * @dev Get 1 Ticket Price with RN Tokens.
-     * @custom:time every hour entry price increases by 1 RN Tokens for each chance
+     * @dev Get 1 Ticket Price with RANDOM Tokens.
+     * @custom:time every hour entry price increases by 1 RANDOM Tokens for each chance
      */
     function getRnPrice() public view returns (uint ticketPrice) {
-        uint TICKET_PRICE_INCREASE = 1; // 1 RN token every hour
+        uint TICKET_PRICE_INCREASE = 1; // 1 RANDOM token every hour
         uint SECONDS_PER_HOUR = 60 * 60; // 3600 seconds
         uint HOUR_DIFFERENCE = (block.timestamp - rounds[round].startDate) / SECONDS_PER_HOUR;
         return rnEntry + (TICKET_PRICE_INCREASE * (HOUR_DIFFERENCE * 1e18));
@@ -153,15 +163,15 @@ contract RNDailyNoLossLottery is Context, Ownable, ReentrancyGuard, VRFConsumerB
     /**
      * @dev Claim locked tokens + rewards from a specific round.
      * @param roundNr Desired round number.
-     * returns claimed RN Tokens.
+     * returns claimed RANDOM Tokens.
      */
-    function claim(uint roundNr) public nonReentrant returns (uint256 claimedRN) {
+    function claim(uint roundNr) public nonReentrant returns (uint256 claimedRANDOM) {
         require(roundNr > round, "Wait until round finishes");
         uint rnTokens = 0;
         
-        if(rounds[roundNr].totalRN[_msgSender()] > 0) {
-            rnTokens = rounds[roundNr].totalRN[_msgSender()];
-            rounds[roundNr].totalRN[_msgSender()] = 0;
+        if(rounds[roundNr].totalRANDOM[_msgSender()] > 0) {
+            rnTokens = rounds[roundNr].totalRANDOM[_msgSender()];
+            rounds[roundNr].totalRANDOM[_msgSender()] = 0;
             rnToken.safeTransfer(_msgSender(), rnTokens);
             unclaimedTokens -= rnTokens;
         }
@@ -172,14 +182,14 @@ contract RNDailyNoLossLottery is Context, Ownable, ReentrancyGuard, VRFConsumerB
 
     /**
      * @dev Claim locked tokens + rewards from all rounds.
-     * @return claimedRN and claimnedNLL
+     * @return claimedRANDOM and claimnedNLL
      */
-    function claimAll() public nonReentrant returns (uint256 claimedRN) {
+    function claimAll() public nonReentrant returns (uint256 claimedRANDOM) {
         uint rnTokens = 0;
         for(uint i = 1; i <= round; i++) {
-            if (rounds[i].totalRN[_msgSender()] > 0) {
-                uint rn = rounds[i].totalRN[_msgSender()];
-                rounds[i].totalRN[_msgSender()] = 0;
+            if (rounds[i].totalRANDOM[_msgSender()] > 0) {
+                uint rn = rounds[i].totalRANDOM[_msgSender()];
+                rounds[i].totalRANDOM[_msgSender()] = 0;
                 rnTokens += rn;
             }
         }
@@ -204,7 +214,7 @@ contract RNDailyNoLossLottery is Context, Ownable, ReentrancyGuard, VRFConsumerB
 
         for(uint i = 0; i < playersLength; i++){
             addresses[i] = rounds[roundNr].winnersDAO[i];
-            contribution[i] = rounds[roundNr].totalRN[addresses[i]];
+            contribution[i] = rounds[roundNr].totalRANDOM[addresses[i]];
             totalRnWon[i] = rounds[roundNr].totalNLL[addresses[i]];
         }
 
@@ -212,7 +222,7 @@ contract RNDailyNoLossLottery is Context, Ownable, ReentrancyGuard, VRFConsumerB
     }
 
     function getClaimableTokens(uint256 nr) public view returns (uint rn, uint256 nll) {
-        rn = rounds[nr].totalRN[_msgSender()];
+        rn = rounds[nr].totalRANDOM[_msgSender()];
         nll = rounds[nr].totalNLL[_msgSender()];
     }
 
@@ -292,15 +302,15 @@ contract RNDailyNoLossLottery is Context, Ownable, ReentrancyGuard, VRFConsumerB
         return IERC721Enumerable(nftToken).totalSupply();
     }
 
-    // 10 Years of RN / NLL / NFT - 100 winners daily
-    // 1,25 Billion RN / 3650 days = 342.464 RN Daily / 100 winners = 3424 RN Daily to 100 Winners for 10 years * 0.10$ = 342$
-    // 342.465 RN Daily / 2 Draws = 171.232 RN
+    // 10 Years of RANDOM / NLL / NFT - 100 winners daily
+    // 1,25 Billion RANDOM / 3650 days = 342.464 RANDOM Daily / 100 winners = 3424 RANDOM Daily to 100 Winners for 10 years * 0.10$ = 342$
+    // 342.465 RANDOM Daily / 2 Draws = 171.232 RANDOM
     // 10.000 NLL / 100 winners = 100 NLL
-    // 10 Years of Game Pass RN and NLL Rewards
+    // 10 Years of Game Pass RANDOM and NLL Rewards
 
     function rewardBurnRatio() public view returns (uint256 toReward, uint256 toBurn, bool isFinalRound) {
         uint256 treasuryBalance = rnToken.balanceOf(address(treasury)); // aproval check
-        uint256 reward = 342465 * 1e18; // 342.465 RN Tokens / 100 Winning Tickets = 3424.65 RN (50 DAO, 50 NFT) Daily Draw
+        uint256 reward = 342465 * 1e18; // 342.465 RANDOM Tokens / 100 Winning Tickets = 3424.65 RANDOM (50 DAO, 50 NFT) Daily Draw
         if(reward * 2 <= treasuryBalance) {
             toReward = reward / (numWords * 2);
             toBurn = reward;
@@ -364,32 +374,18 @@ contract RNDailyNoLossLottery is Context, Ownable, ReentrancyGuard, VRFConsumerB
         return (rounds[roundNr].totalTickets, rounds[roundNr].ticketOwner[nr]);
     }
 
-    /**
-     * @dev Helper function used to withdraw remaining LINK Tokens after all Daily Games have finished.
-     */
-    function withdrawLink(uint256 amount, address to) external onlyOwner {
-        LINKTOKEN.transfer(to, amount);
-    }
-
-    /**
-     * @dev Helper function used to withdraw remaining LINK Tokens after all Daily Games have finished.
-     */
-    function withdrawRN() external onlyOwner {
-        require(rnToken.transfer(_msgSender(), rnToken.balanceOf(address(this))), "Unable to transfer");
-    }
-
     function getCurrentTime() public view returns (uint time) { time = block.timestamp; }
     function getCurrentBlockTime() public view returns (uint blockNr) { blockNr = block.number; }
     function getCurrentRoundTimeDiff() public view returns (uint time) { time = rounds[round].endDate - block.timestamp; }
 
     /**
      * @dev ERC677 TokenFallback Function.
-     * @param _wallet The player address that sent tokens to the RN Daily No Loss Lottery Contract.
-     * @param _value The amount of tokens sent by the player to the RN Daily No Loss Lottery Contract.
+     * @param _wallet The player address that sent tokens to the RANDOM Daily No Loss Lottery Contract.
+     * @param _value The amount of tokens sent by the player to the RANDOM Daily No Loss Lottery Contract.
      * @param _data  The transaction metadata.
      */
     function onTokenTransfer(address _wallet, uint256 _value, bytes memory _data) public {
-        require(finalRound == false, "The daily RN No Loss Lottery has successfully distributed all 401.500.000 RN Tokens!");
+        require(finalRound == false, "The daily RANDOM No Loss Lottery has successfully distributed all 401.500.000 RANDOM Tokens!");
         uint ticketPrice = getRnPrice();
         buyTicket(_wallet, _value, ticketPrice, round, _data);
     }
@@ -400,12 +396,12 @@ contract RNDailyNoLossLottery is Context, Ownable, ReentrancyGuard, VRFConsumerB
             rounds[_round].isUnique[_wallet] = true;
             rounds[_round].totalUniquePlayers = rounds[_round].totalUniquePlayers + 1;
         }
-        // BUY TICKET WITH RN
+        // BUY TICKET WITH RANDOM
         if(_msgSender() == address(rnToken)) {
-            require(_value % _rnEntryPrice == 0, "RN Ticket Price increases 1 RN every hour.");
-            require(_value / _rnEntryPrice <= 250, "Max 250 Tickets can be reserved at once using RN Tokens.");
+            require(_value % _rnEntryPrice == 0, "RANDOM Ticket Price increases 1 RANDOM every hour.");
+            require(_value / _rnEntryPrice <= 250, "Max 250 Tickets can be reserved at once using RANDOM Tokens.");
             _addTickets(_wallet, _value / _rnEntryPrice);
-            rounds[_round].totalRN[_wallet] = rounds[_round].totalRN[_wallet] + _value;
+            rounds[_round].totalRANDOM[_wallet] = rounds[_round].totalRANDOM[_wallet] + _value;
             unclaimedTokens += _value;
             emit TicketsPurchased(address(rnToken), _wallet, _value, _data);
         // BUY TICKET WITH NLL
@@ -424,8 +420,8 @@ contract RNDailyNoLossLottery is Context, Ownable, ReentrancyGuard, VRFConsumerB
 
     /**
      * @dev Helper function called by ERC677 onTokenTransfer function to calculate ticket slots for player and keep count of total tickets bought in the current round. 
-     * @param _wallet The player address that sent tokens to the RN Daily No Loss Lottery Contract.
-     * @param _totalTickets The amount of tokens sent by the player to the RN Daily No Loss Lottery Contract.
+     * @param _wallet The player address that sent tokens to the RANDOM Daily No Loss Lottery Contract.
+     * @param _totalTickets The amount of tokens sent by the player to the RANDOM Daily No Loss Lottery Contract.
      */
     function _addTickets(address _wallet, uint _totalTickets) private {
         Round storage activeRound = rounds[round];
@@ -434,6 +430,11 @@ contract RNDailyNoLossLottery is Context, Ownable, ReentrancyGuard, VRFConsumerB
             activeRound.ticketOwner[total + i] = _wallet;
         }
         activeRound.totalTickets = total + _totalTickets;
+    }
+
+    modifier after10Years() {
+        require(block.timestamp > rounds[1].startDate + 3650 days); // 10 years after round 1
+        _;
     }
 
     function destroy() public onlyOwner {

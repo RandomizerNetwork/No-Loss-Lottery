@@ -10,9 +10,9 @@ const fromWei = (amount) => ethers.utils.formatEther(amount)
 const minter = ethers.utils.getAddress("0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266");
 const wallet = ethers.utils.getAddress("0x70997970c51812dc3a010c7d01b50e0d17dc79c8");
 
-describe("RNMetaGamePass", function () {
+describe("RandomizerMetaGamePass", function () {
   before(async () => {
-    const NFTDAO = await ethers.getContractFactory("RNMetaGamePass");
+    const NFTDAO = await ethers.getContractFactory("RandomizerMetaGamePass");
     this.dao = await NFTDAO.deploy();
     await this.dao.deployed();
 

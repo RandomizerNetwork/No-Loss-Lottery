@@ -10,10 +10,10 @@ const fromWei = (amount) => ethers.utils.formatEther(amount)
 const minter = ethers.utils.getAddress("0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266");
 const wallet = ethers.utils.getAddress("0x70997970c51812dc3a010c7d01b50e0d17dc79c8");
 
-describe("RNToken", function () {
+describe("RANDOMToken", function () {
   beforeEach(async () => {
-    const RNToken = await ethers.getContractFactory("RNToken");
-    this.rn = await RNToken.deploy();
+    const RANDOMToken = await ethers.getContractFactory("RANDOMToken");
+    this.rn = await RANDOMToken.deploy();
     await this.rn.deployed();
 
     this.totalSupply = await this.rn.totalSupply();
@@ -34,7 +34,7 @@ describe("RNToken", function () {
   })
 
   it("should check if token has correct symbol", async () => {
-    expect(await this.rn.symbol()).to.equal('RN', "Token symbol is not correct")
+    expect(await this.rn.symbol()).to.equal('RANDOM', "Token symbol is not correct")
   })
 
   it("should check if token has correct decimals", async () => {
@@ -42,7 +42,7 @@ describe("RNToken", function () {
   })
 
   it("should check if initial owner balance equals to TotalSupply", async () => {
-    expect(await this.rn.balanceOf(minter)).to.equal(await this.rn.totalSupply(), "Owner should initialy own all RN Tokens")
+    expect(await this.rn.balanceOf(minter)).to.equal(await this.rn.totalSupply(), "Owner should initialy own all RANDOM Tokens")
   });
 
   it("should check if transfers work correctly", async () => {
@@ -50,15 +50,15 @@ describe("RNToken", function () {
     expect(await this.rn.balanceOf(minter)).to.equal(totalSupply, "Owner address must initialy have total supply");
     expect(await this.rn.balanceOf(wallet)).to.equal(0, "Wallet address must initialy have 0 Tokens");
     await this.rn.transfer(wallet, toWei("1000000"))
-    expect(await this.rn.balanceOf(minter)).to.equal(totalSupply.sub(toWei("1000000")), "Owner address should have total supply minus 1M RN Tokens");
+    expect(await this.rn.balanceOf(minter)).to.equal(totalSupply.sub(toWei("1000000")), "Owner address should have total supply minus 1M RANDOM Tokens");
     expect(await this.rn.balanceOf(wallet)).to.equal(toWei("1000000"), "Wallet address has received 1M Tokens");
   });
 
   it("should check if approve and transferFrom works correctly", async () => {
-    expect(await this.rn.balanceOf(minter)).to.equal(this.totalSupply, "Wallet address must initialy have all RN Tokens");
+    expect(await this.rn.balanceOf(minter)).to.equal(this.totalSupply, "Wallet address must initialy have all RANDOM Tokens");
     const approve = await this.rn.connect(this.signer).approve(wallet, toWei("2000001"));
     await approve.wait();
-    expect(await this.rn.allowance(minter, wallet)).to.equal(toWei("2000001"), "Wallet address must initialy have all RN Tokens");
+    expect(await this.rn.allowance(minter, wallet)).to.equal(toWei("2000001"), "Wallet address must initialy have all RANDOM Tokens");
     expect(await this.rn.connect(this.signerWallet).transferFrom(minter, wallet, toWei("2000000")))
   });
 
@@ -69,7 +69,7 @@ describe("RNToken", function () {
   });
 
   it("should check if increaseAllowance and decreaseAllowance works correctly", async () => {
-    expect(await this.rn.allowance(minter, wallet)).to.equal(toWei("0"), "RN Tokens is not 0");
+    expect(await this.rn.allowance(minter, wallet)).to.equal(toWei("0"), "RANDOM Tokens is not 0");
     
     await this.rn.connect(this.signer).increaseAllowance(wallet, toWei("200"));
     expect(await this.rn.allowance(minter, wallet)).to.equal(toWei("200"), "Should be 1 token");

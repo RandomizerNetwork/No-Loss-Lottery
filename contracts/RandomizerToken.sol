@@ -18,16 +18,16 @@ interface ERC677Receiver {
   function onTokenTransfer(address _sender, uint _value, bytes memory _data) external;
 }
 
-contract RNToken is ERC20, ERC20Burnable, ERC20Snapshot, Ownable, ERC20Permit, ERC20Votes {
+contract RandomizerToken is ERC20, ERC20Burnable, ERC20Snapshot, Ownable, ERC20Permit, ERC20Votes {
     uint256 public constant minimumMintInterval = 365 days;
     uint256 public constant mintCap = 100; // 1%
     uint256 public nextMint; // Next Timestamp
 
     constructor()
-        ERC20("Randomizer Network", "RN") 
+        ERC20("Randomizer Network", "RANDOM") 
         ERC20Permit("Randomizer Network")
     {
-        _mint(msg.sender, 10000000000 * 10 ** decimals());
+        _mint(msg.sender, 1000000000 * 10 ** decimals());
         nextMint = block.timestamp + minimumMintInterval;
     }
 
@@ -42,8 +42,8 @@ contract RNToken is ERC20, ERC20Burnable, ERC20Snapshot, Ownable, ERC20Permit, E
      * @param amount The quantity of tokens to mint.
      */
     function mint(address to, uint256 amount) public onlyOwner {
-        require(amount <= (totalSupply() * mintCap) / 10000, "RN: Mint exceeds maximum amount");
-        require(block.timestamp >= nextMint, "RN: Cannot mint yet");
+        require(amount <= (totalSupply() * mintCap) / 10000, "RANDOM: Mint exceeds maximum amount");
+        require(block.timestamp >= nextMint, "RANDOM: Cannot mint yet");
         nextMint = block.timestamp + minimumMintInterval;
         _mint(to, amount);
     }

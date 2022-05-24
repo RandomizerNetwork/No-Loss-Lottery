@@ -3,23 +3,23 @@ const config = require('../config');
 module.exports = async ({getNamedAccounts, deployments}) => {
     const {deploy, log} = deployments;
     const {deployer} = await getNamedAccounts();
-    const RNMetaGamePass = await deployments.get('RNMetaGamePass');
-    const RNToken = await deployments.get('RNToken');
+    const RandomizerMetaGamePass = await deployments.get('RandomizerMetaGamePass');
+    const RandomizerToken = await deployments.get('RandomizerToken');
     const NLLToken = await deployments.get('NLLToken');
-    log("Deploying RNDailyNoLossLottery....");
-    const RNDailyNoLossLottery = await deploy('RNDailyNoLossLottery', {
+    log("Deploying RandomizerDailyNoLossLottery....");
+    const RandomizerDailyNoLossLottery = await deploy('RandomizerDailyNoLossLottery', {
       from: deployer,
       args: [
-        RNToken.address,
+        RandomizerToken.address,
         NLLToken.address,
-        RNMetaGamePass.address,
+        RandomizerMetaGamePass.address,
         config.NLL_TREASURY_GNOSIS_SAFE
       ],
       log: true,
     });
-    log(`04 - Deployed 'RNDailyNoLossLottery' at ${RNDailyNoLossLottery.address}`);
+    log(`04 - Deployed 'RandomizerDailyNoLossLottery' at ${RandomizerDailyNoLossLottery.address}`);
     return true;
 };
-module.exports.tags = ['RNDailyNoLossLottery'];
-module.exports.dependencies = ['RNToken', 'NLLToken', 'RNMetaGamePass'];
-module.exports.id = 'RNDailyNoLossLottery';
+module.exports.tags = ['RandomizerDailyNoLossLottery'];
+module.exports.dependencies = ['RandomizerToken', 'NLLToken', 'RandomizerMetaGamePass'];
+module.exports.id = 'RandomizerDailyNoLossLottery';

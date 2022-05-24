@@ -10,15 +10,15 @@ const fromWei = (amount) => ethers.utils.formatEther(amount)
 const minter = ethers.utils.getAddress("0xd1E006022f11a1878b391b92A69Df1F0741F6a92");
 const wallet = ethers.utils.getAddress("0x63625Cfd44F4a29013D30F1ba02Ca69c1976b7da");
 
-describe("RN_NLLV2", function () {
+describe("RANDOM_NLLV2", function () {
   beforeEach(async () => {
     const [deployer, player] = await ethers.getSigners();    
-    const RNToken = await ethers.getContractAt("RNToken", "0x551b7377F547765502c323b50442e0A8581Db643");
+    const RANDOMToken = await ethers.getContractAt("RANDOMToken", "0x551b7377F547765502c323b50442e0A8581Db643");
     const NLLToken = await ethers.getContractAt("NLLToken", "0x6b70e4966e66AAafA9956Ed19B38A6c5dae4FC56");
-    const NLLLotteryV2 = await ethers.getContractAt("RNDailyNoLossLotteryV2.sol", "0x0161C8890eC9E71D9E9a303a3C6b726e5ca815ee");
+    const NLLLotteryV2 = await ethers.getContractAt("RANDOMDailyNoLossLotteryV2.sol", "0x0161C8890eC9E71D9E9a303a3C6b726e5ca815ee");
     console.log('deployer', deployer.address);
     console.log('player', player.address);
-    console.log('RNToken', RNToken.address);
+    console.log('RANDOMToken', RANDOMToken.address);
     console.log('NLLToken', NLLToken.address);
     console.log('NLLLotteryV2', NLLLotteryV2.address);
     console.log('subscriptionId', await this.noLossLotteryV2.subscriptionId());
@@ -27,9 +27,9 @@ describe("RN_NLLV2", function () {
   it("should check if token has correct values", async () => {
     console.log('wtf merge ?')
     expect(await this.rn.name()).to.equal('Randomizer Network', "Token name is not correct")
-    expect(await this.rn.symbol()).to.equal('RN', "Token symbol is not correct")
+    expect(await this.rn.symbol()).to.equal('RANDOM', "Token symbol is not correct")
     expect(await this.rn.decimals()).to.equal(18, "Token decimals is not correct")
-    expect(await this.rn.balanceOf(minter)).to.equal(await this.rn.totalSupply(), "Owner should own all 10B RN Tokens")
+    expect(await this.rn.balanceOf(minter)).to.equal(await this.rn.totalSupply(), "Owner should own all 1B RANDOM Tokens")
   })
 
 });

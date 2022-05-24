@@ -4,11 +4,11 @@ async function main() {
   const block = await hre.ethers.provider.getBlock("latest");
   const openingTime = Math.floor(block.timestamp) + 1 // now + 1 hour = 3600
   
-  // We deploy the RN Governance Token
-  const RNToken = await hre.ethers.getContractFactory("RNToken");
-  const rn = await RNToken.deploy(openingTime);
+  // We deploy the RANDOM Governance Token
+  const RandomizerToken = await hre.ethers.getContractFactory("RandomizerToken");
+  const rn = await RandomizerToken.deploy(openingTime);
   await rn.deployed();
-  console.log("RNToken deployed to:", rn.address);
+  console.log("RandomizerToken deployed to:", rn.address);
 
   // We deploy the NLL Utility Token
   const NLLToken = await hre.ethers.getContractFactory("NLLToken");
@@ -17,10 +17,10 @@ async function main() {
   console.log("NLLToken deployed to:", nll.address);
 
   // We deploy Meta Game Passes
-  const RNMetaGamePass = await hre.ethers.getContractFactory("RNMetaGamePass");
-  const gamepass = await RNMetaGamePass.deploy(openingTime);
+  const RandomizerMetaGamePass = await hre.ethers.getContractFactory("RandomizerMetaGamePass");
+  const gamepass = await RandomizerMetaGamePass.deploy(openingTime);
   await gamepass.deployed();
-  console.log("RNMetaGamePass deployed to:", gamepass.address);
+  console.log("RandomizerMetaGamePass deployed to:", gamepass.address);
 
   // We deploy the Governor Contract
   // We deploy the Timelock Contract

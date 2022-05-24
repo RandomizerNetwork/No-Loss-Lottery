@@ -3,8 +3,8 @@ const config = require('../config');
 module.exports = async ({getNamedAccounts, deployments}) => {
     const {deploy, log} = deployments;
     const {deployer} = await getNamedAccounts();
-    log("Deploying RNMetaGamePass....");
-    const RNMetaGamePass = await deploy('RNMetaGamePass', {
+    log("Deploying RandomizerMetaGamePass....");
+    const RandomizerMetaGamePass = await deploy('RandomizerMetaGamePass', {
       from: deployer,
       args: [
         "1",                              // Timestamp starts now
@@ -13,8 +13,8 @@ module.exports = async ({getNamedAccounts, deployments}) => {
       ], 
       log: true,
     });
-    log(`01 - Deployed 'RNMetaGamePass' at ${RNMetaGamePass.address}`);
+    log(`01 - Deployed 'RandomizerMetaGamePass' at ${RandomizerMetaGamePass.address}`);
     return true;
 };
-module.exports.tags = ['RNMetaGamePass'];
-module.exports.id = 'RNMetaGamePass';
+module.exports.tags = ['RandomizerMetaGamePass'];
+module.exports.id = 'RandomizerMetaGamePass';
