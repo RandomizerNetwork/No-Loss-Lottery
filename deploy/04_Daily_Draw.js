@@ -6,8 +6,8 @@ module.exports = async ({getNamedAccounts, deployments}) => {
     const RandomizerMetaGamePass = await deployments.get('RandomizerMetaGamePass');
     const RandomizerToken = await deployments.get('RandomizerToken');
     const NLLToken = await deployments.get('NLLToken');
-    log("Deploying RandomizerDailyNoLossLottery....");
-    const RandomizerDailyNoLossLottery = await deploy('RandomizerDailyNoLossLottery', {
+    log("Deploying RandomizerDailyDraw....");
+    const RandomizerDailyDraw = await deploy('RandomizerDailyDraw', {
       from: deployer,
       args: [
         RandomizerToken.address,
@@ -17,9 +17,9 @@ module.exports = async ({getNamedAccounts, deployments}) => {
       ],
       log: true,
     });
-    log(`04 - Deployed 'RandomizerDailyNoLossLottery' at ${RandomizerDailyNoLossLottery.address}`);
+    log(`04 - Deployed 'RandomizerDailyDraw' at ${RandomizerDailyDraw.address}`);
     return true;
 };
-module.exports.tags = ['RandomizerDailyNoLossLottery'];
+module.exports.tags = ['RandomizerDailyDraw'];
 module.exports.dependencies = ['RandomizerToken', 'NLLToken', 'RandomizerMetaGamePass'];
-module.exports.id = 'RandomizerDailyNoLossLottery';
+module.exports.id = 'RandomizerDailyDraw';

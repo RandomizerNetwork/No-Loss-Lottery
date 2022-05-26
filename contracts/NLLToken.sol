@@ -55,7 +55,7 @@ contract NLLToken is Ownable, ERC20 {
       require(_msgSender() != address(0), "ERC677: can't receive tokens from the zero address");
       require(_to != address(0), "ERC677: can't send to zero address");
       require(_to != address(this), "ERC677: can't send tokens to the token address");
-      require(NoLossLotteries[_to] == true, "Transfers are only allowed in the Daily, Weekly, Monthly No Loss Lotteries.");
+      require(NoLossLotteries[_to] == true, "Transfers are only allowed in the Daily, Weekly, Monthly Draws.");
 
       _transfer(_msgSender(), _to, _value);
       emit Transfer(_msgSender(), _to, _value);

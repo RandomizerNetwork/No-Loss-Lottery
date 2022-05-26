@@ -26,7 +26,7 @@ module.exports = async ({getNamedAccounts, deployments}) => {
     await (await TimeLock.grantRole(await TimeLock.PROPOSER_ROLE(), governor.address)).wait(1);
     await (await TimeLock.grantRole(await TimeLock.EXECUTOR_ROLE(), ZERO_ADDRESS)).wait(1);
     await (await TimeLock.revokeRole(await TimeLock.TIMELOCK_ADMIN_ROLE(), deployer)).wait(1);
-    log(`05 - ALL DAO PROPOSALS GO THROUGH THE GOVERNOR CONTRACT. Anyone can have the EXECUTOR_ROLE. The deployer renounces ownership of the TIMELOCK_ADMIN_ROLE.`);
+    log(`05 - All DAO PROPOSALS go through the RandomizerGovernor Smart Contract. The deployer renounces ownership of the TIMELOCK_ADMIN_ROLE.`);
     return true;
 };
 module.exports.tags = ['RandomizerGovernor'];

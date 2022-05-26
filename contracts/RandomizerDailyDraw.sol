@@ -2,6 +2,12 @@
 pragma solidity >= 0.8.0 < 0.9.0;
 pragma experimental ABIEncoderV2;
 
+// ██████   █████  ███    ██ ██████   ██████  ███    ███ ██ ███████ ███████ ██████      ███    ██ ███████ ████████ ██     ██  ██████  ██████  ██   ██ 
+// ██   ██ ██   ██ ████   ██ ██   ██ ██    ██ ████  ████ ██    ███  ██      ██   ██     ████   ██ ██         ██    ██     ██ ██    ██ ██   ██ ██  ██  
+// ██████  ███████ ██ ██  ██ ██   ██ ██    ██ ██ ████ ██ ██   ███   █████   ██████      ██ ██  ██ █████      ██    ██  █  ██ ██    ██ ██████  █████   
+// ██   ██ ██   ██ ██  ██ ██ ██   ██ ██    ██ ██  ██  ██ ██  ███    ██      ██   ██     ██  ██ ██ ██         ██    ██ ███ ██ ██    ██ ██   ██ ██  ██  
+// ██   ██ ██   ██ ██   ████ ██████   ██████  ██      ██ ██ ███████ ███████ ██   ██     ██   ████ ███████    ██     ███ ███   ██████  ██   ██ ██   ██ 
+                                                                                                                                                   
 // ███    ██  ██████      ██       ██████  ███████ ███████     ██       ██████  ████████ ████████ ███████ ██████  ██    ██ 
 // ████   ██ ██    ██     ██      ██    ██ ██      ██          ██      ██    ██    ██       ██    ██      ██   ██  ██  ██  
 // ██ ██  ██ ██    ██     ██      ██    ██ ███████ ███████     ██      ██    ██    ██       ██    █████   ██████    ████   
@@ -24,30 +30,30 @@ interface mintNLLToken {
     function mint(address receiver, uint amount) external;
 }
 
-contract RandomizerDailyNoLossLottery is Context, Ownable, ReentrancyGuard, VRFConsumerBaseV2, KeeperCompatible {
+contract RandomizerDailyDraw is Context, Ownable, ReentrancyGuard, VRFConsumerBaseV2, KeeperCompatible {
     using SafeERC20 for IERC20;
     
-    IERC20 private immutable rnToken;   // RANDOM TOKENS ARE RECLAIMABLE AFTER THE ROUND ENDS
-    IERC20 private immutable nllToken;  // NLL TOKENS ARE BURNED ON EVERY USE 1 NLL = 1 TICKET
-    IERC721Enumerable private immutable nftToken; // META GAME PASS NFTS - DAILY PRIVATE NFT NO LOSS LOTTERY
+    IERC20 private immutable randomDAOToken;   // RANDOM TOKENS ARE RECLAIMABLE AFTER THE ROUND ENDS
+    IERC20 private immutable nllUtilityToken;  // NLL TOKENS ARE BURNED ON EVERY USE 1 NLL = 1 TICKET
+    IERC721Enumerable private immutable nftMetaPass; // META GAME PASS NFTS - DAILY PRIVATE NFT DAILY DRAW
 
     VRFCoordinatorV2Interface COORDINATOR;
     LinkTokenInterface LINKTOKEN;
 
-    event LotteryOpen(uint256 lotteryRoundNr);
-    event LotteryClose(uint256 lotteryRoundNr, uint256 totalTickets, uint256 totalPlayers);
-    event LotteryCompleted(uint256 lotteryRoundNr, uint256[] winningTicketsNr, address[] winners);
+    event DrawOpen(uint256 gameRoundNr);
+    event DrawClosed(uint256 gameRoundNr, uint256 totalTickets, uint256 totalPlayers);
+    event DrawCompleted(uint256 gameRoundNr, uint256[] winningTicketsNr, address[] winners);
     event TicketsPurchased(address token, address player, uint256 tokens, bytes data);
     event Claim(address claimer, uint256 rnAmount);
 
     enum Status {
-        Open,           // The lottery is open for ticket purchases
-        Closed,         // The lottery is no longer open for ticket purchases
-        Completed       // The lottery in this round has closed and the random lucky tickets have been drawn
+        Open,           // The daily draw is open for ticket purchases
+        Closed,         // The daily draw is no longer open for ticket purchases
+        Completed       // The daily draw in this round has closed and the random lucky tickets have been drawn
     }
 
     struct Round {
-        Status lotteryStatus;                       // Daily No Loss Lottery Rounds Status
+        Status gameStatus;                       // Daily Draw Rounds Status
         uint256 requestId;                          // Round Chainlink VRF Request ID
         uint256 startDate;                          // Round Start Time
         uint256 endDate;                            // Round End Date
@@ -80,17 +86,17 @@ contract RandomizerDailyNoLossLottery is Context, Ownable, ReentrancyGuard, VRFC
     uint256 public nllEntry = 1e18;            // 1 NLL Token per Ticket that get's burned after it is used
     uint16 private requestConfirmations = 3;   // Longest Chain of Blocks after which Chainlink VRF makes the Random Hex Request 
     uint32 private callbackGasLimit = 100000;  // Amount of gas used for Chainlink Keepers Network calling Chainlink VRF V2 Randomness Function
-    uint32 private numWords = 50;               // Total Random Numbers Requested by the Chainlink Verifiable Randomness Function used by both draws
+    uint32 private numWords = 50;              // Total Random Numbers Requested by the Chainlink Verifiable Randomness Function used by both draws
     uint64 public subscriptionId;              // Chainlink Subscription ID
-    bool public finalRound;                    // Last round 
+    bool public finalRound;                    // Last round after 10 years
 
-    constructor(IERC20 _rnToken, IERC20 _nllToken, IERC721Enumerable _nftToken, address _treasury) VRFConsumerBaseV2(vrfCoordinator) {
-        rnToken = _rnToken;
-        nllToken = _nllToken;
-        nftToken = _nftToken;
+    constructor(IERC20 _randomDAOToken, IERC20 _nllUtilityToken, IERC721Enumerable _nftMetaPass, address _treasury) VRFConsumerBaseV2(vrfCoordinator) {
+        randomDAOToken = _randomDAOToken;
+        nllUtilityToken = _nllUtilityToken;
+        nftMetaPass = _nftMetaPass;
         treasury = _treasury;
         round = 1;
-        rounds[round].lotteryStatus = Status.Open;
+        rounds[round].gameStatus = Status.Open;
         rounds[round].startDate = block.timestamp;
         rounds[round].endDate = block.timestamp + drawFrequency;
         COORDINATOR = VRFCoordinatorV2Interface(vrfCoordinator);
@@ -138,14 +144,14 @@ contract RandomizerDailyNoLossLottery is Context, Ownable, ReentrancyGuard, VRFC
 
     // Helper function used to withdraw remaining LINK Tokens after all Daily Games have finished.
     function withdrawRandomTokens() external onlyOwner after10Years {
-        require(rnToken.transfer(_msgSender(), rnToken.balanceOf(address(this))), "Unable to transfer");
+        require(randomDAOToken.transfer(_msgSender(), randomDAOToken.balanceOf(address(this))), "Unable to transfer");
     }
 
     /**
      * @dev Get 1 Ticket Price with RANDOM Tokens.
      * @custom:time every hour entry price increases by 1 RANDOM Tokens for each chance
      */
-    function getRnPrice() public view returns (uint ticketPrice) {
+    function getRandomPrice() public view returns (uint ticketPrice) {
         uint TICKET_PRICE_INCREASE = 1; // 1 RANDOM token every hour
         uint SECONDS_PER_HOUR = 60 * 60; // 3600 seconds
         uint HOUR_DIFFERENCE = (block.timestamp - rounds[round].startDate) / SECONDS_PER_HOUR;
@@ -167,17 +173,17 @@ contract RandomizerDailyNoLossLottery is Context, Ownable, ReentrancyGuard, VRFC
      */
     function claim(uint roundNr) public nonReentrant returns (uint256 claimedRANDOM) {
         require(roundNr > round, "Wait until round finishes");
-        uint rnTokens = 0;
+        uint randomDAOTokens = 0;
         
         if(rounds[roundNr].totalRANDOM[_msgSender()] > 0) {
-            rnTokens = rounds[roundNr].totalRANDOM[_msgSender()];
+            randomDAOTokens = rounds[roundNr].totalRANDOM[_msgSender()];
             rounds[roundNr].totalRANDOM[_msgSender()] = 0;
-            rnToken.safeTransfer(_msgSender(), rnTokens);
-            unclaimedTokens -= rnTokens;
+            randomDAOToken.safeTransfer(_msgSender(), randomDAOTokens);
+            unclaimedTokens -= randomDAOTokens;
         }
 
-        emit Claim(_msgSender(), rnTokens);
-        return rnTokens;
+        emit Claim(_msgSender(), randomDAOTokens);
+        return randomDAOTokens;
     }
 
     /**
@@ -185,20 +191,20 @@ contract RandomizerDailyNoLossLottery is Context, Ownable, ReentrancyGuard, VRFC
      * @return claimedRANDOM and claimnedNLL
      */
     function claimAll() public nonReentrant returns (uint256 claimedRANDOM) {
-        uint rnTokens = 0;
+        uint randomDAOTokens = 0;
         for(uint i = 1; i <= round; i++) {
             if (rounds[i].totalRANDOM[_msgSender()] > 0) {
                 uint rn = rounds[i].totalRANDOM[_msgSender()];
                 rounds[i].totalRANDOM[_msgSender()] = 0;
-                rnTokens += rn;
+                randomDAOTokens += rn;
             }
         }
 
-        rnToken.safeTransfer(_msgSender(), rnTokens);
-        unclaimedTokens -= rnTokens;
+        randomDAOToken.safeTransfer(_msgSender(), randomDAOTokens);
+        unclaimedTokens -= randomDAOTokens;
 
-        emit Claim(_msgSender(), rnTokens);
-        return rnTokens;
+        emit Claim(_msgSender(), randomDAOTokens);
+        return randomDAOTokens;
     }
 
     /**
@@ -209,16 +215,16 @@ contract RandomizerDailyNoLossLottery is Context, Ownable, ReentrancyGuard, VRFC
     function roundStats(uint roundNr) view public returns (address[] memory, uint[] memory, uint[] memory) {
         uint playersLength = rounds[roundNr].winnersDAO.length;
         uint[] memory contribution = new uint[](playersLength);
-        uint[] memory totalRnWon = new uint[](playersLength);
+        uint[] memory totalRandomWinner = new uint[](playersLength);
         address[] memory addresses = new address[](playersLength);
 
         for(uint i = 0; i < playersLength; i++){
             addresses[i] = rounds[roundNr].winnersDAO[i];
             contribution[i] = rounds[roundNr].totalRANDOM[addresses[i]];
-            totalRnWon[i] = rounds[roundNr].totalNLL[addresses[i]];
+            totalRandomWinner[i] = rounds[roundNr].totalNLL[addresses[i]];
         }
 
-        return (addresses, contribution, totalRnWon);
+        return (addresses, contribution, totalRandomWinner);
     }
 
     function getClaimableTokens(uint256 nr) public view returns (uint rn, uint256 nll) {
@@ -256,50 +262,57 @@ contract RandomizerDailyNoLossLottery is Context, Ownable, ReentrancyGuard, VRFC
         uint256[] memory winningTicketsNFTs = expand(randomness, totalNFTs, numWords);
         uint256[] memory winningTicketsDAO = expand(randomness, rounds[round].totalTickets, numWords);
         (uint256 toReward, uint256 toBurn, bool isFinalRound) = rewardBurnRatio();
+
+        // FUTURE TO-DO MAKE SURE IF IN GENESIS NO RANDOM TOKENS ARE  
+        // uint256 rewardMetaPassFirst;
+        // if(rounds[round].totalTickets <= 50) {
+        //     rewardMetaPassFirst = 50 - rounds[round].totalTickets;
+        // }
         
+        // 100 DAILY WINNERS
         for (uint i = 0; i < numWords; i++) {
-            // DRAW DAO GOVERNANCE
+            // DRAW DAO GOVERNANCE - 50 WINNERS
             address winnerAddressDAO = rounds[round].ticketOwner[winningTicketsDAO[i]];
             rounds[round].winnersDAO[i] = winnerAddressDAO;
             rounds[round].luckyTicketsDAO[i] = winningTicketsDAO[i];
-            rnToken.safeTransferFrom(treasury, winnerAddressDAO, toReward);
-            mintNLLToken(address(nllToken)).mint(winnerAddressDAO, 100e18);
+            randomDAOToken.safeTransferFrom(treasury, winnerAddressDAO, toReward);
+            mintNLLToken(address(nllUtilityToken)).mint(winnerAddressDAO, 100e18);
 
-            // DRAW META GAME PASS
+            // DRAW META GAME PASS - 50 WINNERS
             address winnerAddressNFT = getGamePassOwnerByID(winningTicketsNFTs[i]);
             rounds[round].winnersNFT[i] = winnerAddressNFT;
             rounds[round].luckyTicketsNFT[i] = winningTicketsNFTs[i];
-            rnToken.safeTransferFrom(treasury, winnerAddressNFT, toReward);
-            mintNLLToken(address(nllToken)).mint(winnerAddressNFT, 100e18);
+            randomDAOToken.safeTransferFrom(treasury, winnerAddressNFT, toReward);
+            mintNLLToken(address(nllUtilityToken)).mint(winnerAddressNFT, 100e18);
         }
         
-        (bool success,) = address(rnToken).call(abi.encodeWithSignature("burn(uint256)",toBurn));
+        (bool success,) = address(randomDAOToken).call(abi.encodeWithSignature("burn(uint256)",toBurn));
         require(success,"burn FAIL");
 
-        rounds[round].lotteryStatus = Status.Completed;
+        rounds[round].gameStatus = Status.Completed;
         rounds[round].randomResult = randomness;
         rounds[round].requestId = requestId;
-        emit LotteryCompleted(round, rounds[round].luckyTicketsDAO, rounds[round].winnersDAO);
+        emit DrawCompleted(round, rounds[round].luckyTicketsDAO, rounds[round].winnersDAO);
 
         if(isFinalRound) {
             finalRound = true;
         } else {
             // INITIATE NEXT ROUND
             round = round + 1;
-            rounds[round].lotteryStatus = Status.Open;
+            rounds[round].gameStatus = Status.Open;
             rounds[round].startDate = block.timestamp;
             rounds[round].endDate = rounds[round].startDate + drawFrequency;
-            emit LotteryOpen(round);
+            emit DrawOpen(round);
         }
 
     }
 
     function getGamePassOwnerByID(uint256 _id) public view returns (address tokenOwner) {
-        return IERC721Enumerable(nftToken).ownerOf(_id);
+        return IERC721Enumerable(nftMetaPass).ownerOf(_id);
     }
 
     function getGamePassTotalSupply() public view returns (uint256 totalSupply) {
-        return IERC721Enumerable(nftToken).totalSupply();
+        return IERC721Enumerable(nftMetaPass).totalSupply();
     }
 
     // 10 Years of RANDOM / NLL / NFT - 100 winners daily
@@ -309,7 +322,7 @@ contract RandomizerDailyNoLossLottery is Context, Ownable, ReentrancyGuard, VRFC
     // 10 Years of Game Pass RANDOM and NLL Rewards
 
     function rewardBurnRatio() public view returns (uint256 toReward, uint256 toBurn, bool isFinalRound) {
-        uint256 treasuryBalance = rnToken.balanceOf(address(treasury)); // aproval check
+        uint256 treasuryBalance = randomDAOToken.balanceOf(address(treasury)); // aproval check
         uint256 reward = 342465 * 1e18; // 342.465 RANDOM Tokens / 100 Winning Tickets = 3424.65 RANDOM (50 DAO, 50 NFT) Daily Draw
         if(reward * 2 <= treasuryBalance) {
             toReward = reward / (numWords * 2);
@@ -331,8 +344,8 @@ contract RandomizerDailyNoLossLottery is Context, Ownable, ReentrancyGuard, VRFC
         upkeepNeeded = 
             rounds[round].endDate - 5 minutes <= block.timestamp &&
             rounds[round].requestId == 0 &&
-            rounds[round].lotteryStatus == Status.Open && 
-            rounds[round].lotteryStatus != Status.Completed && 
+            rounds[round].gameStatus == Status.Open && 
+            rounds[round].gameStatus != Status.Completed && 
             rounds[round].totalTickets >= 10;
         performData = abi.encode(round);
     }
@@ -347,13 +360,13 @@ contract RandomizerDailyNoLossLottery is Context, Ownable, ReentrancyGuard, VRFC
         require(
             rounds[round].endDate - 5 minutes <= block.timestamp &&
             rounds[round].requestId == 0 &&
-            rounds[round].lotteryStatus == Status.Open && 
-            rounds[round].lotteryStatus != Status.Completed && 
+            rounds[round].gameStatus == Status.Open && 
+            rounds[round].gameStatus != Status.Completed && 
             rounds[round].totalTickets >= 10, 
             "Could not draw winnings tickets."
         );
-        rounds[round].lotteryStatus == Status.Closed;
-        emit LotteryClose(round, rounds[round].totalTickets, rounds[round].totalUniquePlayers);
+        rounds[round].gameStatus == Status.Closed;
+        emit DrawClosed(round, rounds[round].totalTickets, rounds[round].totalUniquePlayers);
         COORDINATOR.requestRandomWords(
             vrfKeyHash,
             subscriptionId,
@@ -380,13 +393,13 @@ contract RandomizerDailyNoLossLottery is Context, Ownable, ReentrancyGuard, VRFC
 
     /**
      * @dev ERC677 TokenFallback Function.
-     * @param _wallet The player address that sent tokens to the RANDOM Daily No Loss Lottery Contract.
-     * @param _value The amount of tokens sent by the player to the RANDOM Daily No Loss Lottery Contract.
+     * @param _wallet The player address that sent tokens to the RANDOM Daily Draw Contract.
+     * @param _value The amount of tokens sent by the player to the RANDOM Daily Draw Contract.
      * @param _data  The transaction metadata.
      */
     function onTokenTransfer(address _wallet, uint256 _value, bytes memory _data) public {
-        require(finalRound == false, "The daily RANDOM No Loss Lottery has successfully distributed all 401.500.000 RANDOM Tokens!");
-        uint ticketPrice = getRnPrice();
+        require(finalRound == false, "The daily RANDOM Daily Draw has successfully distributed all 401.500.000 RANDOM Tokens!");
+        uint ticketPrice = getRandomPrice();
         buyTicket(_wallet, _value, ticketPrice, round, _data);
     }
 
@@ -397,22 +410,22 @@ contract RandomizerDailyNoLossLottery is Context, Ownable, ReentrancyGuard, VRFC
             rounds[_round].totalUniquePlayers = rounds[_round].totalUniquePlayers + 1;
         }
         // BUY TICKET WITH RANDOM
-        if(_msgSender() == address(rnToken)) {
+        if(_msgSender() == address(randomDAOToken)) {
             require(_value % _rnEntryPrice == 0, "RANDOM Ticket Price increases 1 RANDOM every hour.");
             require(_value / _rnEntryPrice <= 250, "Max 250 Tickets can be reserved at once using RANDOM Tokens.");
             _addTickets(_wallet, _value / _rnEntryPrice);
             rounds[_round].totalRANDOM[_wallet] = rounds[_round].totalRANDOM[_wallet] + _value;
             unclaimedTokens += _value;
-            emit TicketsPurchased(address(rnToken), _wallet, _value, _data);
+            emit TicketsPurchased(address(randomDAOToken), _wallet, _value, _data);
         // BUY TICKET WITH NLL
-        } else if (_msgSender() == address(nllToken)) {
+        } else if (_msgSender() == address(nllUtilityToken)) {
             require(_value % nllEntry == 0, "1 NLL Token = 1 Chance at any time.");
             require(_value / nllEntry <= 250, "Max 250 Tickets can be reserved at once using NLL Tokens.");
             _addTickets(_wallet, _value / nllEntry);
             rounds[_round].totalNLL[_wallet] = rounds[_round].totalNLL[_wallet] + _value;
-            (bool success,) = address(nllToken).call(abi.encodeWithSignature("burn(uint256)",_value));
+            (bool success,) = address(nllUtilityToken).call(abi.encodeWithSignature("burn(uint256)",_value));
             require(success, "burn FAIL");
-            emit TicketsPurchased(address(nllToken), _wallet, _value, _data);
+            emit TicketsPurchased(address(nllUtilityToken), _wallet, _value, _data);
         } else {
             revert("Provided amounts are not valid.");
         }
@@ -420,8 +433,8 @@ contract RandomizerDailyNoLossLottery is Context, Ownable, ReentrancyGuard, VRFC
 
     /**
      * @dev Helper function called by ERC677 onTokenTransfer function to calculate ticket slots for player and keep count of total tickets bought in the current round. 
-     * @param _wallet The player address that sent tokens to the RANDOM Daily No Loss Lottery Contract.
-     * @param _totalTickets The amount of tokens sent by the player to the RANDOM Daily No Loss Lottery Contract.
+     * @param _wallet The player address that sent tokens to the RANDOM Daily Draw Contract.
+     * @param _totalTickets The amount of tokens sent by the player to the RANDOM Daily Draw Contract.
      */
     function _addTickets(address _wallet, uint _totalTickets) private {
         Round storage activeRound = rounds[round];
