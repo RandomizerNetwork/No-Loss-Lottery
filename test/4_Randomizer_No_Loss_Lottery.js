@@ -10,16 +10,16 @@ const fromWei = (amount) => ethers.utils.formatEther(amount)
 const minter = ethers.utils.getAddress("0xd1E006022f11a1878b391b92A69Df1F0741F6a92");
 const wallet = ethers.utils.getAddress("0x63625Cfd44F4a29013D30F1ba02Ca69c1976b7da");
 
-describe("RANDOM_NLLV2", function () {
+describe("RANDOM_RNDDV2", function () {
   beforeEach(async () => {
     const [deployer, player] = await ethers.getSigners();    
     const RANDOMToken = await ethers.getContractAt("RANDOMToken", "0x551b7377F547765502c323b50442e0A8581Db643");
-    const NLLToken = await ethers.getContractAt("NLLToken", "0x6b70e4966e66AAafA9956Ed19B38A6c5dae4FC56");
+    const RNDDToken = await ethers.getContractAt("RNDDToken", "0x6b70e4966e66AAafA9956Ed19B38A6c5dae4FC56");
     const RandomizerDailyDraw = await ethers.getContractAt("RandomizerDailyDraw", "0x0161C8890eC9E71D9E9a303a3C6b726e5ca815ee");
     console.log('deployer', deployer.address);
     console.log('player', player.address);
     console.log('RANDOMToken', RANDOMToken.address);
-    console.log('NLLToken', NLLToken.address);
+    console.log('RNDDToken', RNDDToken.address);
     console.log('RandomizerDailyDraw', RandomizerDailyDraw.address);
     console.log('subscriptionId', await RandomizerDailyDraw.subscriptionId());
   });

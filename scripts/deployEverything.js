@@ -10,11 +10,11 @@ async function main() {
   await rn.deployed();
   console.log("RandomizerToken deployed to:", rn.address);
 
-  // We deploy the NLL Utility Token
-  const NLLToken = await hre.ethers.getContractFactory("NLLToken");
-  const nll = await NLLToken.deploy(openingTime);
-  await nll.deployed();
-  console.log("NLLToken deployed to:", nll.address);
+  // We deploy the RNDD Utility Token
+  const RNDDToken = await hre.ethers.getContractFactory("RNDDToken");
+  const rndd = await RNDDToken.deploy(openingTime);
+  await rndd.deployed();
+  console.log("RNDDToken deployed to:", rndd.address);
 
   // We deploy Meta Game Passes
   const RandomizerMetaGamePass = await hre.ethers.getContractFactory("RandomizerMetaGamePass");

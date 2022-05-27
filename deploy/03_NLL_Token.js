@@ -1,14 +1,14 @@
 module.exports = async ({getNamedAccounts, deployments}) => {
     const {deploy, log} = deployments;
     const {deployer} = await getNamedAccounts();
-    log("Deploying NLLToken....");
-    const token = await deploy('NLLToken', {
+    log("Deploying RNDDToken....");
+    const token = await deploy('RNDDToken', {
       from: deployer,
       args: [],
       log: true,
     });
-    log(`03 - Deployed 'NLLToken' at ${token.address}`);
+    log(`03 - Deployed 'RNDDToken' at ${token.address}`);
     return true;
 };
-module.exports.tags = ['NLLToken'];
-module.exports.id = 'NLLToken';
+module.exports.tags = ['RNDDToken'];
+module.exports.id = 'RNDDToken';

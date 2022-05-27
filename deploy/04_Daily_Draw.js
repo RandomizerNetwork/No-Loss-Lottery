@@ -5,15 +5,15 @@ module.exports = async ({getNamedAccounts, deployments}) => {
     const {deployer} = await getNamedAccounts();
     const RandomizerMetaGamePass = await deployments.get('RandomizerMetaGamePass');
     const RandomizerToken = await deployments.get('RandomizerToken');
-    const NLLToken = await deployments.get('NLLToken');
+    const RNDDToken = await deployments.get('RNDDToken');
     log("Deploying RandomizerDailyDraw....");
     const RandomizerDailyDraw = await deploy('RandomizerDailyDraw', {
       from: deployer,
       args: [
         RandomizerToken.address,
-        NLLToken.address,
+        RNDDToken.address,
         RandomizerMetaGamePass.address,
-        config.NLL_TREASURY_GNOSIS_SAFE
+        config.RNDD_TREASURY_GNOSIS_SAFE
       ],
       log: true,
     });
@@ -21,5 +21,5 @@ module.exports = async ({getNamedAccounts, deployments}) => {
     return true;
 };
 module.exports.tags = ['RandomizerDailyDraw'];
-module.exports.dependencies = ['RandomizerToken', 'NLLToken', 'RandomizerMetaGamePass'];
+module.exports.dependencies = ['RandomizerToken', 'RNDDToken', 'RandomizerMetaGamePass'];
 module.exports.id = 'RandomizerDailyDraw';

@@ -84,7 +84,7 @@ contract RandomizerMetaPass is ERC721, ERC721Enumerable, ERC721Royalty, ContextM
         if (msg.sender != owner()) {
             require(to == msg.sender);
             require(msg.value >= 0.05 ether * amount);
-            require(amount > 0 && amount <= 2, "Max 2 NLL Game Passes per transaction");
+            require(amount > 0 && amount <= 2, "Max 2 RNDD Game Passes per transaction");
         }
 
         uint256 tokenId = _tokenIdCounter.current();
