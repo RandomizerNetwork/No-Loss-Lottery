@@ -11,6 +11,18 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+// import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+interface IERC20 {
+    /**
+     * @dev Moves `amount` tokens from the caller's account to `to`.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {Transfer} event.
+     */
+    function transfer(address to, uint256 amount) external returns (bool);
+}
 
 /**
  * @dev Implementation of https://eips.ethereum.org/EIPS/eip-721[ERC721] Non-Fungible Token Standard, including
@@ -30,6 +42,8 @@ contract ERC721A is
   using Address for address;
   using Strings for uint256;
 
+  IERC20 private randomDAOToken;
+
   struct TokenOwnership {
     address addr;
     uint64 startTimestamp;
@@ -39,6 +53,14 @@ contract ERC721A is
     uint128 balance;
     uint128 numberMinted;
   }
+
+  struct RewardData {
+    uint256 claimableReward;
+  }
+
+  // 5K Holders can claim 50M (5%) Randomizer Tokens over 10 years
+  // 2.73972602739726 of WEI in RANDOM Tokens are claimable each day
+  uint256 private rewardsPerSecond = 31709791983764; // WEI reward each second by Meta Pass Holders
 
   uint256 private currentIndex = 0;
 
@@ -52,16 +74,19 @@ contract ERC721A is
 
   // Mapping from token ID to ownership details
   // An empty struct value does not necessarily mean the token is unowned. See ownershipOf implementation for details.
-  mapping(uint256 => TokenOwnership) private _ownerships;
+  mapping(uint256 => TokenOwnership) public _ownerships;
+  
+  // An empty struct value does not necessarily mean the token is unowned. See ownershipOf implementation for details.
+  mapping(address => RewardData) public _hodlerRewards;
 
   // Mapping owner address to address data
-  mapping(address => AddressData) private _addressData;
+  mapping(address => AddressData) public _addressData;
 
   // Mapping from token ID to approved address
-  mapping(uint256 => address) private _tokenApprovals;
+  mapping(uint256 => address) public _tokenApprovals;
 
   // Mapping from owner to operator approvals
-  mapping(address => mapping(address => bool)) private _operatorApprovals;
+  mapping(address => mapping(address => bool)) public _operatorApprovals;
 
   /**
    * @dev
@@ -70,12 +95,14 @@ contract ERC721A is
   constructor(
     string memory name_,
     string memory symbol_,
-    uint256 maxBatchSize_
+    uint256 maxBatchSize_,
+    address _randomDAOToken
   ) {
     require(maxBatchSize_ > 0, "ERC721A: max batch size must be nonzero");
     _name = name_;
     _symbol = symbol_;
     maxBatchSize = maxBatchSize_;
+    randomDAOToken = IERC20(_randomDAOToken);
   }
 
   /**
@@ -414,6 +441,13 @@ contract ERC721A is
 
     _addressData[from].balance -= 1;
     _addressData[to].balance += 1;
+    
+     // RANDOM Governance Tokens Reward per day claimable by the former owner after the transfer
+    // uint timeDifferenceInSeconds = block.timestamp - _ownerships[tokenId].startTimestamp;
+    // uint reward = timeDifferenceInSeconds * rewardsPerSecond;
+    uint256 reward = getReward(tokenId);
+    _hodlerRewards[from].claimableReward = _hodlerRewards[from].claimableReward + reward;
+    
     _ownerships[tokenId] = TokenOwnership(to, uint64(block.timestamp));
 
     // If the ownership slot of tokenId+1 is not explicitly set, that means the transfer initiator owns it.
@@ -506,6 +540,35 @@ contract ERC721A is
       return true;
     }
   }
+
+  function claimReward() public {
+    uint amount = _hodlerRewards[msg.sender].claimableReward;
+    _hodlerRewards[msg.sender].claimableReward = 0;
+    randomDAOToken.transfer(msg.sender, amount);
+  }
+  
+  // RANDOM Governance tokens that are claimable every second for 10 years
+  function claimRewardEarly(uint256 tokenId) public {
+    require(ownershipOf(tokenId).addr == msg.sender, "Only owner can claim RANDOM Tokens early");
+    uint256 reward = getReward(tokenId);
+    uint256 amount = _hodlerRewards[msg.sender].claimableReward; 
+    _hodlerRewards[msg.sender].claimableReward = 0;
+    _ownerships[tokenId].startTimestamp = uint64(block.timestamp);
+    randomDAOToken.transfer(msg.sender, (amount + reward));
+  }
+
+  function getReward(uint256 tokenId) private view returns (uint256 rewardPerSecond) {
+    uint timeDifferenceInSeconds = block.timestamp - ownershipOf(tokenId).startTimestamp;
+    uint reward = timeDifferenceInSeconds * rewardsPerSecond;
+    return reward;
+  }
+
+    // RANDOM Governance Tokens Reward per day claimable by the former owner after the transfer
+    // uint timeDifferenceInSeconds = block.timestamp - _ownerships[tokenId].startTimestamp;
+    // uint reward = timeDifferenceInSeconds * rewardsPerSecond;
+    // _hodlerRewards[from].claimableReward = _hodlerRewards[from].claimableReward + reward;
+    
+    // _ownerships[tokenId] = TokenOwnership(to, uint64(block.timestamp));
 
   /**
    * @dev Hook that is called before a set of serially-ordered token ids are about to be transferred. This includes minting.

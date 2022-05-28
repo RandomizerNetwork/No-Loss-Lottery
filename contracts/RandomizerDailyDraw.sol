@@ -8,11 +8,11 @@ pragma experimental ABIEncoderV2;
 // ██   ██ ██   ██ ██  ██ ██ ██   ██ ██    ██ ██  ██  ██ ██  ███    ██      ██   ██     ██  ██ ██ ██         ██    ██ ███ ██ ██    ██ ██   ██ ██  ██  
 // ██   ██ ██   ██ ██   ████ ██████   ██████  ██      ██ ██ ███████ ███████ ██   ██     ██   ████ ███████    ██     ███ ███   ██████  ██   ██ ██   ██ 
                                                                                                                                                    
-// ███    ██  ██████      ██       ██████  ███████ ███████     ██       ██████  ████████ ████████ ███████ ██████  ██    ██ 
-// ████   ██ ██    ██     ██      ██    ██ ██      ██          ██      ██    ██    ██       ██    ██      ██   ██  ██  ██  
-// ██ ██  ██ ██    ██     ██      ██    ██ ███████ ███████     ██      ██    ██    ██       ██    █████   ██████    ████   
-// ██  ██ ██ ██    ██     ██      ██    ██      ██      ██     ██      ██    ██    ██       ██    ██      ██   ██    ██    
-// ██   ████  ██████      ███████  ██████  ███████ ███████     ███████  ██████     ██       ██    ███████ ██   ██    ██    
+// ██████   █████  ██ ██   ██    ██     ██████  ██████   █████  ██     ██ 
+// ██   ██ ██   ██ ██ ██    ██  ██      ██   ██ ██   ██ ██   ██ ██     ██ 
+// ██   ██ ███████ ██ ██     ████       ██   ██ ██████  ███████ ██  █  ██ 
+// ██   ██ ██   ██ ██ ██      ██        ██   ██ ██   ██ ██   ██ ██ ███ ██ 
+// ██████  ██   ██ ██ ███████ ██        ██████  ██   ██ ██   ██  ███ ███  
 
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -26,7 +26,7 @@ import "@chainlink/contracts/src/v0.8/interfaces/LinkTokenInterface.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 
-interface mintNLLToken {
+interface mintRNDDToken {
     function mint(address receiver, uint amount) external;
 }
 
@@ -34,7 +34,7 @@ contract RandomizerDailyDraw is Context, Ownable, ReentrancyGuard, VRFConsumerBa
     using SafeERC20 for IERC20;
     
     IERC20 private immutable randomDAOToken;   // RANDOM TOKENS ARE RECLAIMABLE AFTER THE ROUND ENDS
-    IERC20 private immutable nllUtilityToken;  // NLL TOKENS ARE BURNED ON EVERY USE 1 NLL = 1 TICKET
+    IERC20 private immutable rnddUtilityToken;  // RNDD TOKENS ARE BURNED ON EVERY USE 1 RNDD = 1 TICKET
     IERC721Enumerable private immutable nftMetaPass; // META GAME PASS NFTS - DAILY PRIVATE NFT DAILY DRAW
 
     VRFCoordinatorV2Interface COORDINATOR;
@@ -42,7 +42,7 @@ contract RandomizerDailyDraw is Context, Ownable, ReentrancyGuard, VRFConsumerBa
 
     event DrawOpen(uint256 gameRoundNr);
     event DrawClosed(uint256 gameRoundNr, uint256 totalTickets, uint256 totalPlayers);
-    event DrawCompleted(uint256 gameRoundNr, uint256[] winningTicketsNr, address[] winners);
+    event DrawCompleted(uint256 gameRoundNr, uint256[50] winningTicketsNr, address[50] winners);
     event TicketsPurchased(address token, address player, uint256 tokens, bytes data);
     event Claim(address claimer, uint256 rnAmount);
 
@@ -60,39 +60,43 @@ contract RandomizerDailyDraw is Context, Ownable, ReentrancyGuard, VRFConsumerBa
         uint256 totalUniquePlayers;                 // Total Unique Players in active round
         uint256 totalTickets;                       // Total Tickets Bought in active round
         uint256[] randomResult;                     // Chainlink VRF Random Result (hex number)
-        uint256[] luckyTicketsDAO;                  // Lucky Tickets are drawn every round (you can win multiple times with 1 ticket)
-        uint256[] luckyTicketsNFT;                  // Lucky Addresses of Lucky Winnings Tickets
-        address[] winnersDAO;                       // Lucky Addresses of Lucky Winnings Tickets
-        address[] winnersNFT;                       // Lucky Addresses of Lucky Winnings Tickets
+        uint256[50] luckyTicketsDAO;                // Lucky Tickets are drawn every round (you can win multiple times with 1 ticket)
+        uint256[50] luckyTicketsNFT;                // Lucky Addresses of Lucky Winnings Tickets
+        address[50] winnersDAO;                     // Lucky Addresses of Lucky Winnings Tickets
+        address[50] winnersNFT;                     // Lucky Addresses of Lucky Winnings Tickets
         mapping (uint256 => address) ticketOwner;   // Players Addresses from their Ticket Numbers 
         mapping (address => uint256) totalRANDOM;   // Total RANDOM Contributed in active round
-        mapping (address => uint256) totalNLL;      // Total NLL Contributed in active round
+        mapping (address => uint256) totalRNDD;     // Total RNDD Contributed in active round
         mapping (address => bool) isUnique;         // Check if Player is Unique in current round
     }
 
     mapping(uint => Round) public rounds;
 
     // CHAINLINK VRF V2
-    bytes32 public vrfKeyHash = 0xd4bb89654db74673a187bd804519e65e3f71a52bc55f11da7601a13dcf505314; // 0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc; // Rinkeby
-    address public vrfLinkToken = 0x84b9B910527Ad5C03A9Ca831909E21e236EA7b06; // 0x01BE23585060835E02B77ef475b0Cc51aA1e0709; // Rinkeby
-    address public vrfCoordinator = 0x6168499c0cFfCaCD319c818142124B7A15E857ab; // 0x6A2AAd07396B36Fe02a22b33cf443582f682c82f; // 0x6168499c0cFfCaCD319c818142124B7A15E857ab; // Rinkeby
-    address public treasury;                   // GNOSIS TREASURY FOR REWARDS AND BURNING MECHANISM
+    bytes32 public vrfKeyHash = 0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc;
+    address public vrfLinkToken = 0x01BE23585060835E02B77ef475b0Cc51aA1e0709;
+    address public vrfCoordinator = 0x6168499c0cFfCaCD319c818142124B7A15E857ab;
+    address public treasury; // GNOSIS TREASURY FOR REWARDS AND BURNING MECHANISM
 
     // DAILY JACKPOT ROUND
     uint256 public round;
-    uint256 public drawFrequency = 1 days;
+    uint256 public drawFrequency = 1 minutes; // 1 day
+    uint256 public drawEarlyClosing = 10 seconds; // 5 minutes
     uint256 public unclaimedTokens;            // total RANDOM Tokens that are Claimable
     uint256 public rnEntry = 1e18;             // 1 RANDOM per Ticket that is reclaimable at the end of the round
-    uint256 public nllEntry = 1e18;            // 1 NLL Token per Ticket that get's burned after it is used
+    uint256 public rnddEntry = 1e18;           // 1 RNDD Token per Ticket that get's burned after it is used
     uint16 private requestConfirmations = 3;   // Longest Chain of Blocks after which Chainlink VRF makes the Random Hex Request 
-    uint32 private callbackGasLimit = 100000;  // Amount of gas used for Chainlink Keepers Network calling Chainlink VRF V2 Randomness Function
-    uint32 private numWords = 50;              // Total Random Numbers Requested by the Chainlink Verifiable Randomness Function used by both draws
+    uint32 private callbackGasLimit = 300000;  // Amount of gas used for Chainlink Keepers Network calling Chainlink VRF V2 Randomness Function
+    uint32 private numWords = 2;               // Total Random Numbers Requested by the Chainlink Verifiable Randomness Function used by both draws
+    uint32 private gamesSplitPot = 50;         // Daily there are 100 winners made in 2 draws (50 Winners for RANDOM & RNDD) & (50 Winners for Meta Pass Holders)
     uint64 public subscriptionId;              // Chainlink Subscription ID
     bool public finalRound;                    // Last round after 10 years
 
-    constructor(IERC20 _randomDAOToken, IERC20 _nllUtilityToken, IERC721Enumerable _nftMetaPass, address _treasury) VRFConsumerBaseV2(vrfCoordinator) {
+    // 0x52757Be8e15b57FCC3B17998196D0bf238f5613d, 500000000000000000000000000 in GNOSIS SAFE approve 50% of total supply
+    // "0xd478220182812C63d8A23D1fd3B889771207B40d", "0x6e60DEe75b6fA14f6AA5Cc190f84364AcD16ad63", "0xdA5586DbB8bC749571964f06139B46F3aB3F0CB4", "0xe6F7C7caF678A3B7aFb93891907873E88F4FD4AC"
+    constructor(IERC20 _randomDAOToken, IERC20 _rnddUtilityToken, IERC721Enumerable _nftMetaPass, address _treasury) VRFConsumerBaseV2(vrfCoordinator) {
         randomDAOToken = _randomDAOToken;
-        nllUtilityToken = _nllUtilityToken;
+        rnddUtilityToken = _rnddUtilityToken;
         nftMetaPass = _nftMetaPass;
         treasury = _treasury;
         round = 1;
@@ -102,6 +106,7 @@ contract RandomizerDailyDraw is Context, Ownable, ReentrancyGuard, VRFConsumerBa
         COORDINATOR = VRFCoordinatorV2Interface(vrfCoordinator);
         LINKTOKEN = LinkTokenInterface(vrfLinkToken);
         createNewSubscription();
+        // require(topUpSubscription(1000000000000000000), "test");
     }
 
     // Create a new subscription when the contract is initially deployed.
@@ -138,13 +143,13 @@ contract RandomizerDailyDraw is Context, Ownable, ReentrancyGuard, VRFConsumerBa
     }
 
     // Used to withdraw remaining LINK Tokens after ~10 years of Daily Games.
-    function withdrawLink(uint256 amount, address to) external onlyOwner after10Years {
+    function withdrawLink(uint256 amount, address to) external onlyOwner {
         LINKTOKEN.transfer(to, amount);
     }
 
-    // Helper function used to withdraw remaining LINK Tokens after all Daily Games have finished.
-    function withdrawRandomTokens() external onlyOwner after10Years {
-        require(randomDAOToken.transfer(_msgSender(), randomDAOToken.balanceOf(address(this))), "Unable to transfer");
+    // Helper function used to withdraw remaining RANDOM Tokens after all Daily Games have finished.
+    function withdrawRandomTokens() external onlyOwner {
+        require(randomDAOToken.transfer(_msgSender(), randomDAOToken.balanceOf(address(this)) - unclaimedTokens), "Unable to transfer");
     }
 
     /**
@@ -162,8 +167,16 @@ contract RandomizerDailyDraw is Context, Ownable, ReentrancyGuard, VRFConsumerBa
      * @dev Get Round Winners
      * returns luckyTickets and luckyWinners
      */
-    function getWinners(uint roundNr) public view returns (uint256[] memory luckyTicket, address[] memory luckyWinner) {
-        return (rounds[roundNr].luckyTicketsDAO, rounds[roundNr].winnersDAO);
+    function getWinners(uint roundNr) public view returns (
+        uint256[50] memory luckyTicketDAO, 
+        address[50] memory luckyWinnerDAO, 
+        uint256[50] memory luckyTicketNFT, 
+        address[50] memory luckyWinnerNFT
+    ) {
+        return (
+            rounds[roundNr].luckyTicketsDAO, rounds[roundNr].winnersDAO, // DAO
+            rounds[roundNr].luckyTicketsNFT, rounds[roundNr].winnersNFT // DAO
+        );
     }
 
     /**
@@ -188,7 +201,7 @@ contract RandomizerDailyDraw is Context, Ownable, ReentrancyGuard, VRFConsumerBa
 
     /**
      * @dev Claim locked tokens + rewards from all rounds.
-     * @return claimedRANDOM and claimnedNLL
+     * @return claimedRANDOM and claimnedRNDD
      */
     function claimAll() public nonReentrant returns (uint256 claimedRANDOM) {
         uint randomDAOTokens = 0;
@@ -213,6 +226,7 @@ contract RandomizerDailyDraw is Context, Ownable, ReentrancyGuard, VRFConsumerBa
      * @return bool Function returns round winners statistics.
      */
     function roundStats(uint roundNr) view public returns (address[] memory, uint[] memory, uint[] memory) {
+        // RANDOM GOVERNANCE TOKEN
         uint playersLength = rounds[roundNr].winnersDAO.length;
         uint[] memory contribution = new uint[](playersLength);
         uint[] memory totalRandomWinner = new uint[](playersLength);
@@ -221,36 +235,57 @@ contract RandomizerDailyDraw is Context, Ownable, ReentrancyGuard, VRFConsumerBa
         for(uint i = 0; i < playersLength; i++){
             addresses[i] = rounds[roundNr].winnersDAO[i];
             contribution[i] = rounds[roundNr].totalRANDOM[addresses[i]];
-            totalRandomWinner[i] = rounds[roundNr].totalNLL[addresses[i]];
+            totalRandomWinner[i] = rounds[roundNr].totalRNDD[addresses[i]];
         }
 
         return (addresses, contribution, totalRandomWinner);
     }
 
-    function getClaimableTokens(uint256 nr) public view returns (uint rn, uint256 nll) {
+    /**
+     * @dev Helper function that is used to display winner addresses, contributions and lucky bonuses won
+     * @param roundNr Desired round number.
+     * @return bool Function returns round winners statistics.
+     */
+    function roundStatsNFTs(uint roundNr) view public returns (address[] memory, uint[] memory, uint[] memory) {
+        // NFT META PASSS
+        uint nftPlayersLength = rounds[roundNr].winnersNFT.length;
+        uint[] memory contributionNFTs = new uint[](nftPlayersLength);
+        uint[] memory totalRandomWinnerNFTs = new uint[](nftPlayersLength);
+        address[] memory addressesNFTs = new address[](nftPlayersLength);
+
+        for(uint i = 0; i < nftPlayersLength; i++){
+            addressesNFTs[i] = rounds[roundNr].winnersNFT[i];
+            contributionNFTs[i] = rounds[roundNr].totalRANDOM[addressesNFTs[i]];
+            totalRandomWinnerNFTs[i] = rounds[roundNr].totalRNDD[addressesNFTs[i]];
+        }
+
+        return (addressesNFTs, contributionNFTs, totalRandomWinnerNFTs);
+    }
+
+    function getClaimableTokens(uint256 nr) public view returns (uint rn, uint256 rndd) {
         rn = rounds[nr].totalRANDOM[_msgSender()];
-        nll = rounds[nr].totalNLL[_msgSender()];
+        rndd = rounds[nr].totalRNDD[_msgSender()];
     }
 
     /**
      * @dev Helper function for ChainLink VRF that extracts multiple random winning tickets from random entropy sources.
      * return array of winning tickets.
      */
-    // function expand(uint256[] memory _randomValue, uint256 _totalWinningTickets, uint256 _totalWinners) public pure returns (uint256[] memory expandedValues) {
-    //     expandedValues = new uint256[](_totalWinners);
-    //     for (uint256 i = 0; i < _totalWinners; i++) {
-    //         expandedValues[i] = (uint256(keccak256(abi.encode(_randomValue, i))) % _totalWinningTickets) + 1;
-    //     }
-    //     return expandedValues;
-    // }
-
-    function expand(uint256[] memory randomValue, uint256 totalWinningTickets, uint256 totalWinners) public pure returns (uint256[] memory expandedValues) {
-        expandedValues = new uint256[](totalWinners);
-        for (uint256 i = 0; i < totalWinners; i++) {
-            expandedValues[i] = (uint256(keccak256(abi.encode(randomValue[i], i))) % totalWinningTickets) + 1;
+    function expand(uint256 _randomValue, uint256 _totalWinningTickets, uint256 _totalWinners) public pure returns (uint256[] memory expandedValues) {
+        expandedValues = new uint256[](_totalWinners);
+        for (uint256 i = 0; i < _totalWinners; i++) {
+            expandedValues[i] = (uint256(keccak256(abi.encode(_randomValue, i))) % _totalWinningTickets) + 1;
         }
         return expandedValues;
     }
+
+    // function expand(uint256[] memory randomValue, uint256 totalWinningTickets, uint256 totalWinners) public pure returns (uint256[] memory expandedValues) {
+    //     expandedValues = new uint256[](totalWinners);
+    //     for (uint256 i = 0; i < totalWinners; i++) {
+    //         expandedValues[i] = (uint256(keccak256(abi.encode(randomValue[i], i))) % totalWinningTickets) + 1;
+    //     }
+    //     return expandedValues;
+    // }
 
     /**
      * @dev Callback function used by VRF Coordinator to draw winners, announce and setup next round.
@@ -259,35 +294,48 @@ contract RandomizerDailyDraw is Context, Ownable, ReentrancyGuard, VRFConsumerBa
      */
     function fulfillRandomWords(uint256 requestId, uint256[] memory randomness) internal override {
         uint256 totalNFTs = getGamePassTotalSupply();
-        uint256[] memory winningTicketsNFTs = expand(randomness, totalNFTs, numWords);
-        uint256[] memory winningTicketsDAO = expand(randomness, rounds[round].totalTickets, numWords);
+        uint256[] memory winningTicketsNFTs = expand(randomness[0], totalNFTs, gamesSplitPot);
+        uint256[] memory winningTicketsDAO = expand(randomness[1], rounds[round].totalTickets, gamesSplitPot);
         (uint256 toReward, uint256 toBurn, bool isFinalRound) = rewardBurnRatio();
 
-        // FUTURE TO-DO MAKE SURE IF IN GENESIS NO RANDOM TOKENS ARE  
-        // uint256 rewardMetaPassFirst;
-        // if(rounds[round].totalTickets <= 50) {
-        //     rewardMetaPassFirst = 50 - rounds[round].totalTickets;
-        // }
-        
+        // FUTURE TO-DO 
+        // MAKE SURE ALL SLOTS ARE FILLED FOR DAILY TOKENS DRAW
+        // 100 DAILY WINNING TICKETS AND IF THERE ARE NOT ATLEAST 50 TICKETS
+        // BOUGHT WITH RANDOM TOKEN AND RNDD UTILITY TOKEN WE COULD PUSH THE REMAINDER
+        // REWARDS FOR THE META PASSES SO THEY GET MORE THAN 50 CHANCES PER TICKET EACH DAY
+
+        // TRANSFER TOKENS FROM TREASURY TO THE DAILY DRAW CONTRACT
+        // (bool successDeposit,) = address(randomDAOToken).call(abi.encodeWithSignature("transferFrom(address,address,uint256)",treasury, address(this), (toReward * 100) + toBurn));
+        // require(successDeposit,"burn FAIL");
+
         // 100 DAILY WINNERS
-        for (uint i = 0; i < numWords; i++) {
-            // DRAW DAO GOVERNANCE - 50 WINNERS
+        for (uint i = 0; i < gamesSplitPot; i++) {
+            // DRAW DAO GOVERNANCE - 50 WINNERS (270 RANDOM Tokens per ticket and 100 RNDD)
             address winnerAddressDAO = rounds[round].ticketOwner[winningTicketsDAO[i]];
             rounds[round].winnersDAO[i] = winnerAddressDAO;
             rounds[round].luckyTicketsDAO[i] = winningTicketsDAO[i];
-            randomDAOToken.safeTransferFrom(treasury, winnerAddressDAO, toReward);
-            mintNLLToken(address(nllUtilityToken)).mint(winnerAddressDAO, 100e18);
+            rounds[round].totalRANDOM[winnerAddressDAO] = rounds[round].totalRANDOM[winnerAddressDAO] + toReward;
+            rounds[round].totalRNDD[winnerAddressDAO] = rounds[round].totalRNDD[winnerAddressDAO] + 100;
+            // randomDAOToken.safeTransferFrom(treasury, winnerAddressDAO, toReward);
+            // mintRNDDToken(address(rnddUtilityToken)).mint(winnerAddressDAO, 100e18);
 
-            // DRAW META GAME PASS - 50 WINNERS
+            // DRAW META GAME PASS - 50 WINNERS (270 RANDOM Tokens per ticket and 100 RNDD)
             address winnerAddressNFT = getGamePassOwnerByID(winningTicketsNFTs[i]);
             rounds[round].winnersNFT[i] = winnerAddressNFT;
             rounds[round].luckyTicketsNFT[i] = winningTicketsNFTs[i];
-            randomDAOToken.safeTransferFrom(treasury, winnerAddressNFT, toReward);
-            mintNLLToken(address(nllUtilityToken)).mint(winnerAddressNFT, 100e18);
+            rounds[round].totalRANDOM[winnerAddressNFT] = rounds[round].totalRANDOM[winnerAddressNFT] + toReward;
+            rounds[round].totalRNDD[winnerAddressNFT] = rounds[round].totalRNDD[winnerAddressNFT] + 100;
+            
+            // randomDAOToken.safeTransferFrom(treasury, winnerAddressNFT, toReward);
+            // mintRNDDToken(address(rnddUtilityToken)).mint(winnerAddressNFT, 100e18);
         }
         
-        (bool success,) = address(randomDAOToken).call(abi.encodeWithSignature("burn(uint256)",toBurn));
-        require(success,"burn FAIL");
+        unclaimedTokens += toReward * 100;
+        // bool transferTokens = randomDAOToken.transferFrom(treasury, address(this), toBurn);
+        // require(transferTokens, "transferFrom treasury FAIL");
+
+        // (bool success,) = address(randomDAOToken).call(abi.encodeWithSignature("burn(uint256)",toBurn));
+        // require(success,"burn FAIL");
 
         rounds[round].gameStatus = Status.Completed;
         rounds[round].randomResult = randomness;
@@ -315,21 +363,15 @@ contract RandomizerDailyDraw is Context, Ownable, ReentrancyGuard, VRFConsumerBa
         return IERC721Enumerable(nftMetaPass).totalSupply();
     }
 
-    // 10 Years of RANDOM / NLL / NFT - 100 winners daily
-    // 1,25 Billion RANDOM / 3650 days = 342.464 RANDOM Daily / 100 winners = 3424 RANDOM Daily to 100 Winners for 10 years * 0.10$ = 342$
-    // 342.465 RANDOM Daily / 2 Draws = 171.232 RANDOM
-    // 10.000 NLL / 100 winners = 100 NLL
-    // 10 Years of Game Pass RANDOM and NLL Rewards
-
     function rewardBurnRatio() public view returns (uint256 toReward, uint256 toBurn, bool isFinalRound) {
         uint256 treasuryBalance = randomDAOToken.balanceOf(address(treasury)); // aproval check
-        uint256 reward = 342465 * 1e18; // 342.465 RANDOM Tokens / 100 Winning Tickets = 3424.65 RANDOM (50 DAO, 50 NFT) Daily Draw
+        uint256 reward = 27400 * 1e18; // 27.400 RANDOM Tokens / 100 Winning Tickets = 274 RANDOM (50 DAO, 50 NFT) Daily Draw
         if(reward * 2 <= treasuryBalance) {
-            toReward = reward / (numWords * 2);
-            toBurn = reward;
+            toReward = reward / (gamesSplitPot * 2); // 1% annual reward (~270 RANDOM Tokens per ticket * 100 Winners)
+            toBurn = reward * 5; // 5% annual burn (137.000 RANDOM Tokens Burned every day)
             isFinalRound = false;
         } else if (reward * 2 >= treasuryBalance) {
-            toReward = treasuryBalance / 2 / (numWords * 2);
+            toReward = treasuryBalance / 2 / (gamesSplitPot * 2);
             toBurn = treasuryBalance / 2;
             isFinalRound = true;
         }
@@ -342,11 +384,11 @@ contract RandomizerDailyDraw is Context, Ownable, ReentrancyGuard, VRFConsumerBa
      */
     function checkUpkeep(bytes calldata /* checkData */) external view override returns (bool upkeepNeeded, bytes memory performData) {
         upkeepNeeded = 
-            rounds[round].endDate - 5 minutes <= block.timestamp &&
+            rounds[round].endDate - drawEarlyClosing <= block.timestamp &&
             rounds[round].requestId == 0 &&
             rounds[round].gameStatus == Status.Open && 
-            rounds[round].gameStatus != Status.Completed && 
-            rounds[round].totalTickets >= 10;
+            rounds[round].gameStatus != Status.Completed;
+            // rounds[round].totalTickets >= 10;
         performData = abi.encode(round);
     }
 
@@ -358,11 +400,11 @@ contract RandomizerDailyDraw is Context, Ownable, ReentrancyGuard, VRFConsumerBa
         uint256 verifyRound = abi.decode(performData, (uint256));
         require(verifyRound == round, "Round mismatch.");
         require(
-            rounds[round].endDate - 5 minutes <= block.timestamp &&
+            rounds[round].endDate - drawEarlyClosing <= block.timestamp &&
             rounds[round].requestId == 0 &&
             rounds[round].gameStatus == Status.Open && 
-            rounds[round].gameStatus != Status.Completed && 
-            rounds[round].totalTickets >= 10, 
+            rounds[round].gameStatus != Status.Completed,
+            // rounds[round].totalTickets >= 10, 
             "Could not draw winnings tickets."
         );
         rounds[round].gameStatus == Status.Closed;
@@ -417,15 +459,15 @@ contract RandomizerDailyDraw is Context, Ownable, ReentrancyGuard, VRFConsumerBa
             rounds[_round].totalRANDOM[_wallet] = rounds[_round].totalRANDOM[_wallet] + _value;
             unclaimedTokens += _value;
             emit TicketsPurchased(address(randomDAOToken), _wallet, _value, _data);
-        // BUY TICKET WITH NLL
-        } else if (_msgSender() == address(nllUtilityToken)) {
-            require(_value % nllEntry == 0, "1 NLL Token = 1 Chance at any time.");
-            require(_value / nllEntry <= 250, "Max 250 Tickets can be reserved at once using NLL Tokens.");
-            _addTickets(_wallet, _value / nllEntry);
-            rounds[_round].totalNLL[_wallet] = rounds[_round].totalNLL[_wallet] + _value;
-            (bool success,) = address(nllUtilityToken).call(abi.encodeWithSignature("burn(uint256)",_value));
+        // BUY TICKET WITH RNDD
+        } else if (_msgSender() == address(rnddUtilityToken)) {
+            require(_value % rnddEntry == 0, "1 RNDD Token = 1 Chance at any time.");
+            require(_value / rnddEntry <= 250, "Max 250 Tickets can be reserved at once using RNDD Tokens.");
+            _addTickets(_wallet, _value / rnddEntry);
+            rounds[_round].totalRNDD[_wallet] = rounds[_round].totalRNDD[_wallet] + _value;
+            (bool success,) = address(rnddUtilityToken).call(abi.encodeWithSignature("burn(uint256)",_value));
             require(success, "burn FAIL");
-            emit TicketsPurchased(address(nllUtilityToken), _wallet, _value, _data);
+            emit TicketsPurchased(address(rnddUtilityToken), _wallet, _value, _data);
         } else {
             revert("Provided amounts are not valid.");
         }
@@ -445,12 +487,8 @@ contract RandomizerDailyDraw is Context, Ownable, ReentrancyGuard, VRFConsumerBa
         activeRound.totalTickets = total + _totalTickets;
     }
 
-    modifier after10Years() {
-        require(block.timestamp > rounds[1].startDate + 3650 days); // 10 years after round 1
-        _;
-    }
-
     function destroy() public onlyOwner {
+        // cancelSubscription(owner());
         selfdestruct(payable(owner()));
     }
 

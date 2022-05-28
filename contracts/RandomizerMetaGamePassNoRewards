@@ -13,24 +13,22 @@ import "./@openzeppelin/contracts/token/ERC721A/NativeMetaTransaction.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/common/ERC2981.sol";
 
-contract RandomizerMetaGamePass is ERC721A, ERC2981, ContextMixin, NativeMetaTransaction, Ownable {
+contract RandomizerMetaGamePassNoRewards is ERC721A, ERC2981, ContextMixin, NativeMetaTransaction, Ownable {
 
     uint256 public constant MAX_GAME_PASSES = 5000;
     uint256 public allowMintingAfter;
     uint256 public timeDeployed;
     bool public claimedReserve;
 
-    // 0xdA5586DbB8bC749571964f06139B46F3aB3F0CB4
-    // "Randomizer Meta Pass", "RMP", 1, "0xe6F7C7caF678A3B7aFb93891907873E88F4FD4AC", 500, 500, "0xd9145CCE52D386f254917e481eB44e9943F39138"
-    constructor(
+    // "Randomizer Meta Pass", "RMP", 1, "0xe6F7C7caF678A3B7aFb93891907873E88F4FD4AC", 500, 500
+    constructor(        
         string memory _name,           // Randomizer Meta Pass
         string memory _symbol,         // RMP Symbol
         uint256 _allowMintingOn,       // minting start date 
         address _royaltiesReceiver,    // GNOSIS MULTISIG SAFE 
         uint96 _royaltiesFeeNumerator, // ongoing royalty fees 
-        uint256 _maxBatchSize,         // maximum mint size used for the reserve
-        address randomDAOTokenAddress
-    ) ERC721A(_name, _symbol, _maxBatchSize, randomDAOTokenAddress) {
+        uint256 _maxBatchSize          // maximum mint size used for the reserve
+    ) ERC721A(_name, _symbol, _maxBatchSize) {
         _initializeEIP712(_name);
         allowMintingAfter = _allowMintingOn > block.timestamp ? _allowMintingOn - block.timestamp : 0;
         timeDeployed = block.timestamp;

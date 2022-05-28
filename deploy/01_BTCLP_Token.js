@@ -7,9 +7,9 @@ module.exports = async ({getNamedAccounts, deployments}) => {
       args: [],
       log: true,
     });
-    log(`02 - Deployed 'RandomizerToken' at ${RandomizerToken.address}`);
+    log(`01 - Deployed 'RandomizerToken' at ${RandomizerToken.address}`);
     await delegate(RandomizerToken.address, deployer); // delegate to self
-    log(`02 - Delegated`);
+    log(`01 - Delegated`);
     return true;
 };
 module.exports.tags = ['RandomizerToken'];
